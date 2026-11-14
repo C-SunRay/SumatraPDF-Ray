@@ -130,6 +130,7 @@ static ToolbarButtonInfo gToolbarButtons[] = {
      _TRN("Document Color Mode: Match theme (use current theme colors)")},
     {TbIcon::Ocr, CmdToggleAutoOcr, _TRN("Auto OCR")},
     {TbIcon::Speak, CmdReadAloud, _TRN("Read Aloud")},
+    {TbIcon::AiSettings, CmdAiSettings, _TRN("AI Settings...")},
     {TbIcon::Fullscreen, CmdToggleFullscreen, _TRN("Toggle Fullscreen (F11)")},
 };
 // unicode chars: https://www.compart.com/en/unicode/U+25BC
@@ -194,6 +195,7 @@ static int ToolbarOverflowPriority(int idx) {
     if (cmd == CmdRotateLeft || cmd == CmdRotateRight) return 1;
     if (cmd == CmdEbookFontSizeIncrease || cmd == CmdEbookFontSizeDecrease) return 2;
     if (idx >= kButtonsCount) return 4;
+    if (cmd == CmdAiSettings) return 10;
     if (cmd == CmdOpenFile || cmd == CmdPrint) return 5;
     if (cmd == CmdNavigateBack || cmd == CmdNavigateForward) return 6;
     if (cmd == CmdZoomIn || cmd == CmdZoomOut || cmd == CmdZoomFitWidthAndContinuous ||
@@ -715,6 +717,7 @@ static bool IsCmdAvailable(MainWindow* win, int cmdId) {
 }
 
 static bool IsCmdEnabled(MainWindow* win, int cmdId) {
+    if (cmdId == CmdAiSettings) return HasPermission(Perm::SavePreferences);
     auto ctx = NewBuildMenuCtx(win->CurrentTab(), Point{0, 0});
     AutoRun delCtx(DeleteBuildMenuCtx, ctx);
 
@@ -2684,11 +2687,22 @@ static HBITMAP BuildIconsBitmap(int dx, int dy, COLORREF fgCol, COLORREF bgCol) 
     return hbmp;
 }
 
+static void ReplaceAiToolbarIcon(HIMAGELIST images, int size, COLORREF color) {
+    // Preserve the thin, translucent strokes instead of color-keying their
+    // rasterized pixels against the toolbar background.
+    HBITMAP icon = CreateSvgIconAlphaBitmap(size, TbIcon::AiSettings, color);
+    if (icon) {
+        ImageList_Replace(images, (int)TbIcon::AiSettings, icon, nullptr);
+        DeleteObject(icon);
+    }
+}
+
 HIMAGELIST BuildStdToolbarImageList(int dx) {
     HIMAGELIST himl = ImageList_Create(dx, dx, ILC_COLOR32, (int)TbIcon::kMax, 0);
     HBITMAP hbmp = BuildIconsBitmap(dx, dx, ThemeWindowTextColor(), ThemeChromeBackgroundColor());
     ImageList_Add(himl, hbmp, nullptr);
     DeleteObject(hbmp);
+    ReplaceAiToolbarIcon(himl, dx, ThemeWindowTextColor());
     return himl;
 }
 
@@ -2730,6 +2744,7 @@ static int SetToolbarIconsImageList(MainWindow* win) {
     HBITMAP hbmp = BuildIconsBitmap(dx, dx, ThemeWindowTextColor(), bgCol);
     ImageList_Add(himl, hbmp, nullptr);
     DeleteObject(hbmp);
+    ReplaceAiToolbarIcon(himl, dx, ThemeWindowTextColor());
     HIMAGELIST oldNormal = (HIMAGELIST)SendMessageW(hwndToolbar, TB_SETIMAGELIST, 0, (LPARAM)himl);
     if (oldNormal) {
         ImageList_Destroy(oldNormal);
@@ -2740,6 +2755,7 @@ static int SetToolbarIconsImageList(MainWindow* win) {
     HIMAGELIST disabled = ImageList_Create(dx, dx, ILC_COLOR32, kButtonsCount, 0);
     hbmp = BuildIconsBitmap(dx, dx, ThemeWindowTextDisabledColor(), bgCol);
     ImageList_Add(disabled, hbmp, nullptr);
+    ReplaceAiToolbarIcon(disabled, dx, ThemeWindowTextDisabledColor());
     DeleteObject(hbmp);
     HIMAGELIST oldDisabled = (HIMAGELIST)SendMessageW(hwndToolbar, TB_SETDISABLEDIMAGELIST, 0, (LPARAM)disabled);
     if (oldDisabled) {

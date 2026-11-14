@@ -218,28 +218,6 @@ static void AutoFillAiTocApiFromFile() {
     candidates.Reset();
 }
 
-// Defaults for the AI TOC API settings, applied only to a fresh profile
-// (all three fields empty). Never fill a default base URL when a key or model
-// from another provider is already present - that mixture sent an intern-ai
-// key to DashScope and produced confusing cross-provider HTTP 401 errors.
-static void NormalizeAiTocApiPrefs() {
-    if (!gGlobalPrefs) {
-        return;
-    }
-    gGlobalPrefs->aiTocApiConcurrency = limitValue(gGlobalPrefs->aiTocApiConcurrency, 1, 8);
-    if (!str::IsEmptyOrWhiteSpace(gGlobalPrefs->aiTocApiProfiles)) {
-        return;
-    }
-    bool hasBase = !str::IsEmptyOrWhiteSpace(gGlobalPrefs->aiTocApiBaseUrl);
-    bool hasKey = !str::IsEmptyOrWhiteSpace(gGlobalPrefs->aiTocApiKey);
-    bool hasModel = !str::IsEmptyOrWhiteSpace(gGlobalPrefs->aiTocApiModel);
-    if (hasBase || hasKey || hasModel) {
-        return;
-    }
-    str::ReplaceWithCopy(&gGlobalPrefs->aiTocApiBaseUrl, "https://dashscope.aliyuncs.com/compatible-mode/v1");
-    str::ReplaceWithCopy(&gGlobalPrefs->aiTocApiModel, "qwen3.5-397b-a17b");
-}
-
 static void NormalizeDocumentColorModePref() {
     if (!gGlobalPrefs || !gGlobalPrefs->documentColorMode) {
         return;
@@ -483,9 +461,12 @@ bool LoadSettings() {
         gprefs = gGlobalPrefs;
         prefsData.Free();
     }
+    // The removed Web AI checkbox also gated the API sidebar in older builds.
+    // API chat stays available independently of that obsolete checkbox value.
+    gprefs->enableAskAI = true;
     MigrateAiChatProvider(settingsRaw.Get());
     AutoFillAiTocApiFromFile();
-    NormalizeAiTocApiPrefs();
+    AiApiNormalizeDefaultPrefs(gprefs);
     AiTocApiUnprotectPrefsSecrets(gprefs);
     InlineTranslateUnprotectPrefsSecrets(gprefs);
     MigrateDocumentColorMode(settingsRaw.Get());

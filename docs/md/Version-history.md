@@ -2,6 +2,11 @@
 
 ## next
 
+- Changed home thumbnail cards to portrait proportions and fit full covers without cropping or distortion; regenerate legacy previews when books are opened.
+
+- Added `CmdAiSettings` and an AI button at the right end of the toolbar to open the full AI settings page.
+- Put follow-system last in theme menus and migrate the unused legacy Default API profile to DeepSeek Flash.
+
 ## 3.7.94 (2026-11-11)
 
 - 目录顶部“定位当前章节”图标缩小，与相邻的展开、折叠箭头大小更协调。

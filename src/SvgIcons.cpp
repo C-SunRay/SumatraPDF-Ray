@@ -631,6 +631,16 @@ static const char* gIconLocateToc =
   <circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none" />
 </svg>)";
 
+// Compact rounded AI glyph, matching the annotation toolbar's thin outlines.
+static const char* gIconAiSettings =
+    R"(<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke="currentColor" stroke-width="0.9" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <rect width="24" height="24" stroke="none" />
+  <g stroke-opacity="0.65">
+    <rect x="3.5" y="3.5" width="17" height="17" rx="3.2" />
+    <path d="M6.5 15.5L9.2 8.5L11.9 15.5M7.4 13.2H11M14 8.5H17M15.5 8.5V15.5M14 15.5H17" />
+  </g>
+</svg>)";
+
 static const char* gIcons[] = {
     gIconFileOpen,
     gIconPrint,
@@ -699,6 +709,7 @@ static const char* gIcons[] = {
     gIconCapturePageRegion,
     gIconRelatedSearch,
     gIconLocateToc,
+    gIconAiSettings,
 };
 // clang-format on
 

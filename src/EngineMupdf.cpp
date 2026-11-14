@@ -4548,7 +4548,7 @@ figcaption, caption, p.caption, div.caption, span.caption,
   color: #68625a !important;
 }
 )";
-        return str::DupTemp(isEpub ? kEpubReaderLightCss : kLightEyeCareCss);
+        return ThemeLightPaletteCssTemp(isEpub ? kEpubReaderLightCss : kLightEyeCareCss);
     }
     return nullptr;
 }
@@ -4731,7 +4731,7 @@ pre {
             str::FormatTemp("body { font-size: %.4fem !important; }\n", fontSize / kEbookFontSizeBuiltinPt);
         css = css ? str::JoinTemp(css, "\n", sizeCss) : sizeCss;
     }
-    return css;
+    return useEyeCareLightCss ? ThemeLightPaletteCssTemp(css) : css;
 }
 
 static TempStr BuildMarkdownCodeBlockCss(bool darkTheme, bool eyeCareLight) {

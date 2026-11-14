@@ -3691,7 +3691,7 @@ static bool DrawDocument(MainWindow* win, HDC hdc, RECT* rcArea, bool* viewportR
             } else if (IsDarkThemeSelected()) {
                 ThemePageRenderColors(colDocBg, true);
             } else if (docMode != PdfDocumentColorMode::Light && !ThemeUsesOriginalPageColors()) {
-                colDocBg = RgbToCOLORREF(0xF7F3E8);
+                colDocBg = ThemeEyeCarePageBackgroundColor();
             } else {
                 colDocBg = RgbToCOLORREF(0xFFFFFF);
             }
@@ -3705,7 +3705,7 @@ static bool DrawDocument(MainWindow* win, HDC hdc, RECT* rcArea, bool* viewportR
             } else if (IsDarkThemeSelected()) {
                 ThemePageRenderColors(colDocBg, true);
             } else if (!ThemeUsesOriginalPageColors()) {
-                colDocBg = RgbToCOLORREF(0xF7F3E8);
+                colDocBg = ThemeEyeCarePageBackgroundColor();
             } else {
                 colDocBg = RgbToCOLORREF(0xFFFFFF);
             }

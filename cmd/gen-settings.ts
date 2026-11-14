@@ -1010,6 +1010,9 @@ const globalPrefs: Field[] = [
   mkField("AiTocApiProfiles", Str, "", "saved AI table of contents API profiles (JSON)"),
   mkField("AiChatApiProfile", Int, -1, "default chat API profile; -1 inherits the general AI API"),
   mkField("AiChatModel", Str, "", "default chat model; empty inherits the selected API model"),
+  mkField("DeepSeekThinking", Bool, false, "enable DeepSeek thinking mode (off by default)"),
+  mkField("DeepSeekReasoningEffort", Str, "high", "DeepSeek thinking effort: low, high or max"),
+  mkField("DeepSeekWebSearch", Bool, false, "enable DeepSeek server-side web search (off by default)"),
   mkField("AiTocApiConcurrency", Int, 4, "maximum simultaneous AI table of contents requests (1-8)"),
   mkField("AiTocBodyProvider", Str, "", "last chosen body TOC AI method: api/web; empty asks on first use"),
   setVersion(

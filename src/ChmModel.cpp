@@ -149,7 +149,7 @@ static TempStr ChmInjectDarkCssTemp(const ByteSlice& html) {
 }
 
 static TempStr ChmInjectLightEyeCareCssTemp(const ByteSlice& html) {
-    return ChmInjectCssTemp(html, gChmLightEyeCareCss);
+    return ChmInjectCssTemp(html, ThemeLightPaletteCssTemp(gChmLightEyeCareCss));
 }
 
 static IPageDestination* NewChmNamedDest(const char* url, int pageNo) {

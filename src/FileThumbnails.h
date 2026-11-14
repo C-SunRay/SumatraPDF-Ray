@@ -1,9 +1,9 @@
 /* Copyright 2022 the SumatraPDF project authors (see AUTHORS file).
    License: GPLv3 */
 
-// thumbnails are 150px high and have a ratio of sqrt(2) : 1
+// Portrait cards with a 1 : sqrt(2) aspect ratio; preserve full cover contents.
 constexpr int kThumbnailDx = 212;
-constexpr int kThumbnailDy = 150;
+constexpr int kThumbnailDy = 300;
 
 RenderedBitmap* LoadThumbnail(FileState* fs);
 bool HasThumbnail(FileState* fs);

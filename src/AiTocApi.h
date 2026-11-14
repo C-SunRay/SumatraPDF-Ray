@@ -12,7 +12,12 @@ struct AiTocApiConfig {
     const char* key = nullptr;
     const char* model = nullptr;
     int concurrency = 4;
+    bool deepSeekThinking = false;
+    int deepSeekEffort = 1; // 0: low, 1: high, 2: max
+    bool deepSeekWebSearch = false;
 };
+void AiTocApiApplyDeepSeekPrefs(AiTocApiConfig& cfg, const GlobalPrefs* prefs);
+bool TestDeepSeekApi(const char* reportPath);
 
 // Shared saved API profiles. Strings are owned; call Free() before discarding.
 struct AiApiProfile {
@@ -24,6 +29,7 @@ struct AiApiProfile {
     void Free();
 };
 int AiApiLoadProfiles(GlobalPrefs* prefs, Vec<AiApiProfile>& profiles);
+void AiApiNormalizeDefaultPrefs(GlobalPrefs* prefs);
 
 // A request owns one reference and its conversation owns another. Cancel closes
 // the active WinINet request; queued UI updates are also guarded by generation.
@@ -70,20 +76,28 @@ bool AiTocApiDetectTocPages(EngineBase* engine, const AiTocApiConfig& cfg, AiToc
                             AiTocApiProgressFn progress, void* progressCtx, Vec<int>& pagesOut, char** errorOut);
 
 // Sends a minimal chat request to verify the endpoint/key/model. Blocking.
-bool AiTocApiTestConnection(const char* baseUrl, const char* key, const char* model, char** msgOut,
-                            bool vision = false);
+bool AiTocApiTestConnection(const char* baseUrl, const char* key, const char* model, char** msgOut, bool vision = false,
+                            const AiTocApiConfig* options = nullptr);
 
 // Text-only OpenAI-compatible chat/completions. Blocking; call from a worker.
 // roles: "system" / "user" / "assistant". On success *contentOut is newly allocated.
 struct AiTocChatMessage {
     const char* role = nullptr;
     const char* content = nullptr;
+    const char* reasoningContent = nullptr;
+    const char* serverToolCalls = nullptr; // complete JSON array, preserved verbatim
+};
+struct AiTocChatMetadata {
+    char* reasoningContent = nullptr;
+    char* serverToolCalls = nullptr;
+    char* citations = nullptr; // display-only source URLs
+    void Free();
 };
 // Optional streaming callback: accumulated UTF-8 reply, borrowed, on the worker thread.
 typedef void (*AiTocChatProgressFn)(void* ctx, const char* content);
 bool AiTocApiChat(const AiTocApiConfig& cfg, const AiTocChatMessage* msgs, int nMsgs, int timeoutMs, char** contentOut,
                   char** errOut, AiTocChatProgressFn progress = nullptr, void* progressCtx = nullptr,
-                  AiChatCancel* cancel = nullptr);
+                  AiChatCancel* cancel = nullptr, AiTocChatMetadata* metadata = nullptr);
 
 // Queries the provider's OpenAI-compatible GET /models endpoint. Some
 // providers do not expose it; callers should keep manual model entry usable.

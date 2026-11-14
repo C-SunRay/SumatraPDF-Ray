@@ -153,6 +153,7 @@ static AiTocApiConfig SnapshotAiCfg() {
     cfg.key = str::Dup(gGlobalPrefs ? gGlobalPrefs->aiTocApiKey : nullptr);
     cfg.model = str::Dup(gGlobalPrefs ? gGlobalPrefs->aiTocApiModel : nullptr);
     cfg.concurrency = gGlobalPrefs ? gGlobalPrefs->aiTocApiConcurrency : 4;
+    AiTocApiApplyDeepSeekPrefs(cfg, gGlobalPrefs);
     return cfg;
 }
 
@@ -165,49 +166,6 @@ static void FreeAiCfg(AiTocApiConfig& cfg) {
 
 static const char* TargetLangDisplayName(const char* code) {
     return TranslateCodeDisplayName(code);
-}
-
-static AiChatService ActiveWebAiService() {
-    const char* p = gGlobalPrefs ? gGlobalPrefs->aiChatProvider : nullptr;
-    if (str::EqI(p, "deepseek")) {
-        return AiChatService::DeepSeek;
-    }
-    if (str::EqI(p, "chatgpt")) {
-        return AiChatService::ChatGPT;
-    }
-    return AiChatService::Doubao;
-}
-
-static bool WebAiTranslateEnabled() {
-    return gGlobalPrefs && gGlobalPrefs->enableAskAI && HasPermission(Perm::InternetAccess);
-}
-
-// A missing key and a rejected Authorization header are the same for the reader:
-// there is no translation API to call, so the web chat should do it.
-static bool TranslateErrorMeansUnusableApi(const char* err) {
-    if (str::IsEmpty(err)) {
-        return false;
-    }
-    return str::FindI(err, "Authorization") || str::FindI(err, "not configured") ||
-           str::FindI(err, "InvalidAccessKey") || str::FindI(err, "SignatureDoesNotMatch") ||
-           str::FindI(err, "InvalidCredential");
-}
-
-static void SendSelectionToWebAi(MainWindow* win, const char* text, const char* targetLang) {
-    if (!WebAiTranslateEnabled() || str::IsEmptyOrWhiteSpace(text)) {
-        return;
-    }
-    const char* langName = TargetLangDisplayName(targetLang);
-    TempStr prompt = str::FormatTemp("%s %s:\n%s", _TRA("Please translate the following text into"),
-                                     langName ? langName : "the target language", text);
-    LaunchAiChatWithPromptAsync(ActiveWebAiService(), prompt);
-    if (win && win->hwndCanvas) {
-        NotificationCreateArgs args;
-        args.hwndParent = win->hwndCanvas;
-        args.msg = _TRA("Question sent to AI.");
-        args.timeoutMs = 5000;
-        ShowNotification(args);
-    }
 }
 
 // ---------------------------------------------------------------------------
@@ -350,7 +308,7 @@ static bool HttpPostRaw(const char* host, const char* pathAndQuery, const char* 
                         int timeoutMs, HttpResult& res, char** errOut) {
     *errOut = nullptr;
     HINTERNET hInet =
-        InternetOpenA("SumatraPDF-Plus/InlineTranslate", INTERNET_OPEN_TYPE_PRECONFIG, nullptr, nullptr, 0);
+        InternetOpenA("SumatraPDF-Ray/InlineTranslate", INTERNET_OPEN_TYPE_PRECONFIG, nullptr, nullptr, 0);
     if (!hInet) {
         *errOut = str::Dup("Cannot initialize WinINet.");
         return false;
@@ -656,10 +614,12 @@ struct ChatTurn {
     char* role = nullptr;    // "user" / "assistant"
     char* content = nullptr; // sent to the API
     char* display = nullptr; // shown instead of content when set
+    AiTocChatMetadata metadata;
     void Free() {
         str::FreePtr(&role);
         str::FreePtr(&content);
         str::FreePtr(&display);
+        metadata.Free();
     }
 };
 
@@ -789,6 +749,7 @@ static AiTocApiConfig SnapshotChatCfg(char** profileName) {
     AiTocApiConfig source{profile.baseUrl, profile.key, profile.model, profile.concurrency};
     if (valid && gGlobalPrefs && !str::IsEmptyOrWhiteSpace(gGlobalPrefs->aiChatModel))
         source.model = gGlobalPrefs->aiChatModel;
+    AiTocApiApplyDeepSeekPrefs(source, gGlobalPrefs);
     AiTocApiConfig cfg = CopyAiCfg(source);
     str::ReplaceWithCopy(profileName, profile.name);
     for (auto& p : profiles) p.Free();
@@ -3453,7 +3414,6 @@ struct TranslateJob {
     const char* engine = nullptr;
     char* result = nullptr;
     char* error = nullptr;
-    bool fallbackWeb = false;
 };
 
 static void TranslateJobFinished(TranslateJob* job) {
@@ -3472,16 +3432,6 @@ static void TranslateJobFinished(TranslateJob* job) {
         return;
     }
     p->translating = false;
-    if (job->fallbackWeb) {
-        MainWindow* win = p->win;
-        char* text = str::Dup(job->text);
-        char* target = str::Dup(job->target);
-        CloseInlineTranslatePopup(false);
-        SendSelectionToWebAi(win, text, target);
-        str::Free(text);
-        str::Free(target);
-        return;
-    }
     if (job->result) {
         str::ReplacePtr(&p->translation, job->result);
         job->result = nullptr;
@@ -3491,8 +3441,7 @@ static void TranslateJobFinished(TranslateJob* job) {
         str::ReplaceWithCopy(&p->transError, err);
     }
     RefreshTranslationView(p);
-    // Stay hidden until there is something to show. A missing API falls back
-    // to the browser above and must not flash this window first.
+    // Stay hidden until a result or actionable API error is ready.
     if (!IsWindowVisible(p->hwnd)) {
         ShowPopup(p);
     }
@@ -3521,9 +3470,6 @@ static void TranslateJobWorker(TranslateJob* job) {
         str::Free(volcErr);
         if (job->result) {
             CacheStore(job->text, job->target, job->result);
-        } else if (WebAiTranslateEnabled() &&
-                   ((!haveVolc && !AiTocApiIsConfigured(job->cfg)) || TranslateErrorMeansUnusableApi(job->error))) {
-            job->fallbackWeb = true;
         }
     }
     uitask::Post(MkFunc0(TranslateJobFinished, job), "InlineTranslateDone");
@@ -3551,9 +3497,11 @@ struct AskJob {
     Vec<char*> owned;
     char* result = nullptr;
     char* error = nullptr;
+    AiTocChatMetadata metadata;
     ULONGLONG lastProgress = 0;
     void FreeAll() {
         if (cancel) cancel->Release();
+        metadata.Free();
         for (char* s : owned) {
             str::Free(s);
         }
@@ -3565,7 +3513,8 @@ struct AskJob {
     }
 };
 
-static void AskJobAppend(AskJob* job, const char* role, const char* content) {
+static void AskJobAppend(AskJob* job, const char* role, const char* content,
+                         const AiTocChatMetadata* metadata = nullptr) {
     char* r = str::Dup(role);
     char* c = str::Dup(content ? content : "");
     job->owned.Append(r);
@@ -3573,6 +3522,14 @@ static void AskJobAppend(AskJob* job, const char* role, const char* content) {
     AiTocChatMessage m;
     m.role = r;
     m.content = c;
+    if (metadata) {
+        char* reasoning = str::Dup(metadata->reasoningContent);
+        char* calls = str::Dup(metadata->serverToolCalls);
+        job->owned.Append(reasoning);
+        job->owned.Append(calls);
+        m.reasoningContent = reasoning;
+        m.serverToolCalls = calls;
+    }
     job->msgs.Append(m);
 }
 
@@ -3604,9 +3561,19 @@ struct AskProgress {
     char* content;
 };
 
-static void SetAskReply(Vec<ChatTurn>& turns, const char* content) {
+static void SetAskReply(Vec<ChatTurn>& turns, const char* content, const AiTocChatMetadata* metadata = nullptr) {
     if (!turns.IsEmpty() && str::Eq(turns.Last().role, "assistant")) {
-        str::ReplaceWithCopy(&turns.Last().content, content);
+        auto& turn = turns.Last();
+        str::ReplaceWithCopy(&turn.content, content);
+        if (metadata) {
+            turn.metadata.Free();
+            turn.metadata.reasoningContent = str::Dup(metadata->reasoningContent);
+            turn.metadata.serverToolCalls = str::Dup(metadata->serverToolCalls);
+            turn.metadata.citations = str::Dup(metadata->citations);
+            str::FreePtr(&turn.display);
+            if (metadata->citations)
+                turn.display = str::Format("%s\n\n%s\n%s", content, _TRA("Sources:"), metadata->citations);
+        }
     }
 }
 
@@ -3653,7 +3620,7 @@ static void AskJobFinished(AskJob* job) {
     // so a late reply cannot land on another document.
     if (gAsk && tab && gAsk->boundTab == tab && gAsk->generation == job->generation && IsWindowTabValid(tab)) {
         gAsk->asking = false;
-        SetAskReply(gAsk->turns, turn.content);
+        SetAskReply(gAsk->turns, turn.content, &job->metadata);
         turn.Free();
         PresentChatUpdate(gAsk);
         return;
@@ -3661,7 +3628,7 @@ static void AskJobFinished(AskJob* job) {
     // Legacy floating Ask AI popup. The normal path does not open it.
     if (!tab && gPopup && gPopup->mode == PopupMode::AskAi && gPopup->generation == job->generation) {
         gPopup->asking = false;
-        SetAskReply(gPopup->turns, turn.content);
+        SetAskReply(gPopup->turns, turn.content, &job->metadata);
         turn.Free();
         PresentChatUpdate(gPopup);
         return;
@@ -3676,13 +3643,13 @@ static void AskJobFinished(AskJob* job) {
         return;
     }
     st->asking = false;
-    SetAskReply(st->turns, turn.content);
+    SetAskReply(st->turns, turn.content, &job->metadata);
     turn.Free();
 }
 
 static void AskJobWorker(AskJob* job) {
     AiTocApiChat(job->cfg, job->msgs.LendData(), job->msgs.Size(), kChatTimeoutMs, &job->result, &job->error,
-                 AskProgressWorker, job, job->cancel);
+                 AskProgressWorker, job, job->cancel, &job->metadata);
     uitask::Post(MkFunc0(AskJobFinished, job), "InlineAskAiDone");
 }
 
@@ -3725,7 +3692,7 @@ static void StartAsk(InlineTranslatePopup* p, const char* content, const char* d
         AskJobAppend(job, "system", sys.Get());
     }
     for (auto& t : p->turns) {
-        AskJobAppend(job, t.role, t.content);
+        AskJobAppend(job, t.role, t.content, &t.metadata);
     }
     ChatTurn reply;
     reply.role = str::Dup("assistant");
@@ -3818,6 +3785,7 @@ struct AskModelsRequest {
 };
 
 static void RefreshChatCfg(AiTocApiConfig& cfg, char** name, bool& useDefault) {
+    AiTocApiApplyDeepSeekPrefs(cfg, gGlobalPrefs);
     if (!useDefault) {
         Vec<AiApiProfile> profiles;
         AiApiLoadProfiles(gGlobalPrefs, profiles);
@@ -4378,13 +4346,6 @@ void TranslateSelectionInTab(MainWindow* win, WindowTab* tab) {
         return;
     }
     HideSelectionToolbar(win);
-    if (!InlineTranslateVolcIsConfigured() && !InlineTranslateAiApiIsConfigured() && WebAiTranslateEnabled()) {
-        char* text = NormalizeSelectionText(sel);
-        const char* dst = ResolveTranslateTarget(text, gGlobalPrefs->translateTargetMode, trans::GetCurrentLangCode());
-        SendSelectionToWebAi(win, text, dst);
-        str::Free(text);
-        return;
-    }
     InlineTranslatePopup* p = BeginPopupSession(win, sel, PopupMode::Translate);
     if (!p) {
         return;

@@ -74,6 +74,7 @@ enum class TbIcon {
     CapturePageRegion,
     RelatedSearch,
     LocateToc,
+    AiSettings,
     kMax
 };
 

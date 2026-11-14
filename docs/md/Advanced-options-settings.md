@@ -163,22 +163,31 @@ ExtractPdfTocMode = standard
 AiChatProvider = doubao
 
 ; AI table of contents API base URL
-AiTocApiBaseUrl = 
+AiTocApiBaseUrl =
 
 ; AI table of contents API key
-AiTocApiKey = 
+AiTocApiKey =
 
 ; AI table of contents model
-AiTocApiModel = 
+AiTocApiModel =
 
 ; saved AI table of contents API profiles (JSON)
-AiTocApiProfiles = 
+AiTocApiProfiles =
 
 ; default chat API profile; -1 inherits the general AI API
 AiChatApiProfile = -1
 
 ; default chat model; empty inherits the selected API model
 AiChatModel =
+
+; enable DeepSeek thinking mode (off by default)
+DeepSeekThinking = false
+
+; DeepSeek thinking effort: low, high or max
+DeepSeekReasoningEffort = high
+
+; enable DeepSeek server-side web search (off by default)
+DeepSeekWebSearch = false
 
 ; maximum simultaneous AI table of contents requests (1-8)
 AiTocApiConcurrency = 4
@@ -200,11 +209,11 @@ EnableInlineTranslate = true
 
 ; Volcengine Translate access key (Access Key ID); stored DPAPI-protected when
 ; possible (introduced in version 3.7)
-TranslateVolcAccessKey = 
+TranslateVolcAccessKey =
 
 ; Volcengine Translate secret key; stored DPAPI-protected when possible
 ; (introduced in version 3.7)
-TranslateVolcSecretKey = 
+TranslateVolcSecretKey =
 
 ; inline translate target language: auto (UI language, flip when source
 ; matches), ui, or a language code (zh, zh-Hant, en, ja, ko, fr, de, es, ru,
@@ -265,7 +274,7 @@ TabBarHeight = 0
 
 ; Valid themes: Light-Warm, Light-White, System, Dark-Dracula, Dark-Black
 ; (introduced in version 3.5)
-Theme = 
+Theme =
 
 ; Valid dark themes: Dark-Dracula, Dark-Black (introduced in version 3.7)
 LastDarkTheme = Dark-Dracula
@@ -328,7 +337,7 @@ TabsMru = false
 
 ; sequence of zoom levels when zooming in/out; all values must lie between 8.33
 ; and 6400
-ZoomLevels = 
+ZoomLevels =
 
 ; zoom step size in percents relative to the current zoom level. if zero or
 ; negative, the values from ZoomLevels are used instead
@@ -373,7 +382,7 @@ FixedPageUI [
 
     ; if given, sets the canvas background color for PDF files (introduced in
     ; version 3.7)
-    WindowBgCol = 
+    WindowBgCol =
 
     ; color used to highlight the current search match on the page (introduced
     ; in version 3.7.15)
@@ -424,7 +433,7 @@ EBookUI [
 
     ; if given, sets the canvas background color for ebook documents (epub, mobi
     ; etc.) (introduced in version 3.7)
-    WindowBgCol = 
+    WindowBgCol =
 ]
 
 ; customization options for Comic Book UI
@@ -443,14 +452,14 @@ ComicBookUI [
 
     ; if given, sets the canvas background color for comic book files
     ; (introduced in version 3.7)
-    WindowBgCol = 
+    WindowBgCol =
 ]
 
 ; customization options for image files UI
 ImageUI [
     ; if given, sets the canvas background color for image files (introduced in
     ; version 3.7)
-    WindowBgCol = 
+    WindowBgCol =
 
     ; default zoom for image files. valid values: fit page, fit width, fit
     ; content, shrink to fit or percent like 100% (introduced in version 3.7)
@@ -489,10 +498,10 @@ Annotations [
     StrikeOutColor = #ff0000
 
     ; text color of free text annotation (introduced in version 3.5)
-    FreeTextColor = 
+    FreeTextColor =
 
     ; background color of free text annotation (introduced in version 3.6)
-    FreeTextBackgroundColor = 
+    FreeTextBackgroundColor =
 
     ; opacity of free text annotation in percent (0-100); 0 - fully transparent
     ; (invisible), 50 - half transparent, 100 - fully opaque (introduced in
@@ -506,15 +515,15 @@ Annotations [
     FreeTextBorderWidth = 1
 
     ; text icon annotation color
-    TextIconColor = 
+    TextIconColor =
 
     ; type of text annotation icon: comment, caret, help, insert, key, new
     ; paragraph, note, paragraph. If not set: comment.
-    TextIconType = 
+    TextIconType =
 
     ; default author for created annotations, use (none) to not add an author at
     ; all. If not set will use Windows user name (introduced in version 3.4)
-    DefaultAuthor = 
+    DefaultAuthor =
 
     ; if true, a small toolbar with annotation actions (highlight, underline
     ; etc.) and Ask AI pops up after selecting text in PDF documents that
@@ -619,10 +628,10 @@ SelectionHandlers [
 Shortcuts [
   [
     ; command
-    Cmd = 
+    Cmd =
 
     ; keyboard shortcut (e.g. Ctrl-Alt-F)
-    Key = 
+    Key =
 
     ; name shown in command palette (introduced in version 3.6)
     Name =
@@ -636,19 +645,19 @@ Shortcuts [
 Themes [
   [
     ; name of the theme
-    Name = 
+    Name =
 
     ; text color
-    TextColor = 
+    TextColor =
 
     ; background color
-    BackgroundColor = 
+    BackgroundColor =
 
     ; control background color
-    ControlBackgroundColor = 
+    ControlBackgroundColor =
 
     ; link color
-    LinkColor = 
+    LinkColor =
 
     ; should we colorize Windows controls and window areas
     ColorizeControls = false
@@ -659,13 +668,13 @@ Themes [
 TabGroups [
   [
     ; name of the tab group
-    Name = 
+    Name =
 
     ; files in the tab group
     TabFiles [
       [
         ; file path
-        Path = 
+        Path =
       ]
     ]
   ]
@@ -835,11 +844,11 @@ FileStates [
 
     ; if given, overrides the background color for this document (introduced in
     ; version 3.7)
-    BgCol = 
+    BgCol =
 
     ; if given, overrides the tab color for this document (introduced in version
     ; 3.7)
-    TabCol = 
+    TabCol =
 
     ; page display brightness for this document (-100..100). 0 means no change
     ; (introduced in version 3.8)

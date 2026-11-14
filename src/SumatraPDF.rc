@@ -72,8 +72,8 @@ BEGIN
         BEGIN
             VALUE "FileDescription", kAppName
             VALUE "FileVersion", VER_RESOURCE_STR
-            VALUE "InternalName", "SumatraPDF-Plus"
-            VALUE "OriginalFilename", "SumatraPDF-Plus.exe"
+            VALUE "InternalName", "SumatraPDF-Ray"
+            VALUE "OriginalFilename", "SumatraPDF-Ray.exe"
             VALUE "LegalCopyright", kCopyrightStr
             VALUE "ProductName", kAppName
             VALUE "ProductVersion", VER_RESOURCE_STR
@@ -103,15 +103,15 @@ IDR_MANUAL_PAK          RCDATA               "..\\docs\\manual.dat"
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
-IDI_SUMATRAPDF          ICON "..\\gfx\\SumatraPDF-smaller.ico"
+IDI_SUMATRAPDF          ICON "..\\gfx\\SumatraPDF-pink.ico"
 // Document-type icons (resource id = registry DefaultIcon ,-N). See RegisterForOpenWith.
 // Icon 2 stays at index ,1 for pre-3.4 registry compat; use pdf-32bit (same sash style as
 // epub/cbx/chm) so Explorer file icons stay readable at 16–48px — not PdfDoc's tiny badge.
-2                       ICON "..\\gfx\\gfxalt\\pdf-32bit.ico"
-3                       ICON "..\\gfx\\gfxalt\\epub-32bit.ico"
-4                       ICON "..\\gfx\\gfxalt\\cbx-32bit.ico"
-5                       ICON "..\\gfx\\gfxalt\\chm-32bit.ico"
-6                       ICON "..\\gfx\\gfxalt\\djvu-32bit.ico"
+2                       ICON "..\\gfx\\SumatraPDF-pink.ico"
+3                       ICON "..\\gfx\\SumatraPDF-pink.ico"
+4                       ICON "..\\gfx\\SumatraPDF-pink.ico"
+5                       ICON "..\\gfx\\SumatraPDF-pink.ico"
+6                       ICON "..\\gfx\\SumatraPDF-pink.ico"
 
     /////////////////////////////////////////////////////////////////////////////
 
@@ -291,44 +291,53 @@ BEGIN
     COMBOBOX        IDC_TOC_MODE,244,139,226,70,CBS_DROPDOWNLIST | WS_TABSTOP
     LTEXT           "Balanced accuracy and completeness is recommended.",IDC_TOC_MODE_DESCRIPTION,132,164,338,20
 
-    GROUPBOX        "Web AI",IDC_GROUP_ASK_AI,118,14,366,40
-    CONTROL         "&Enable Web AI",IDC_ENABLE_ASK_AI,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,132,32,112,10
-    COMBOBOX        IDC_AI_PROVIDER,312,29,158,70,CBS_DROPDOWNLIST | WS_TABSTOP
-    GROUPBOX        "Translate",IDC_GROUP_INLINE_TRANSLATE,118,82,366,110
-    CONTROL         "Enable &inline translate",IDC_ENABLE_INLINE_TRANSLATE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,132,98,340,10
-    LTEXT           "Target &language:",IDC_TRANSLATE_TARGET_LABEL,132,118,108,9
-    COMBOBOX        IDC_TRANSLATE_TARGET,244,115,226,120,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Volc &Access Key:",IDC_TRANSLATE_VOLC_AK_LABEL,132,138,108,9
-    EDITTEXT        IDC_TRANSLATE_VOLC_AK,244,135,226,14,ES_AUTOHSCROLL | ES_PASSWORD | WS_TABSTOP
-    LTEXT           "Volc &Secret Key:",IDC_TRANSLATE_VOLC_SK_LABEL,132,158,108,9
-    EDITTEXT        IDC_TRANSLATE_VOLC_SK,244,155,162,14,ES_AUTOHSCROLL | ES_PASSWORD | WS_TABSTOP
-    PUSHBUTTON      "&Test",IDC_TRANSLATE_VOLC_TEST,412,155,58,14
-    LTEXT           "Without Volc keys, translation uses the AI API below when configured.",IDC_TRANSLATE_HINT,132,176,338,12
-    GROUPBOX        "AI API (Q&A, translate fallback, TOC)",IDC_GROUP_AITOC_API,118,200,366,158
-    LTEXT           "&Platform:",IDC_AITOC_API_PROFILE_LABEL,132,218,108,9
-    COMBOBOX        IDC_AITOC_API_PROFILE,244,215,118,90,CBS_DROPDOWNLIST | WS_TABSTOP
-    PUSHBUTTON      "&Add",IDC_AITOC_API_ADD,370,215,48,14
-    PUSHBUTTON      "&Remove",IDC_AITOC_API_REMOVE,424,215,48,14
-    LTEXT           "&Name:",IDC_AITOC_API_NAME_LABEL,132,238,108,9
-    EDITTEXT        IDC_AITOC_API_NAME,244,235,226,14,ES_AUTOHSCROLL | WS_TABSTOP
-    LTEXT           "API &base URL:",IDC_AITOC_API_BASEURL_LABEL,132,258,108,9
-    EDITTEXT        IDC_AITOC_API_BASEURL,244,255,226,14,ES_AUTOHSCROLL | WS_TABSTOP
-    LTEXT           "API &key:",IDC_AITOC_API_KEY_LABEL,132,278,108,9
-    EDITTEXT        IDC_AITOC_API_KEY,244,275,226,14,ES_AUTOHSCROLL | ES_PASSWORD | WS_TABSTOP
-    LTEXT           "&Model:",IDC_AITOC_API_MODEL_LABEL,132,298,108,9
-    EDITTEXT        IDC_AITOC_API_MODEL,244,295,162,14,ES_AUTOHSCROLL | WS_TABSTOP
-    PUSHBUTTON      "&Choose...",IDC_AITOC_API_FETCH_MODELS,412,295,58,14
-    LTEXT           "&Parallel (1-8):",IDC_AITOC_API_CONCURRENCY_LABEL,132,318,108,9
-    EDITTEXT        IDC_AITOC_API_CONCURRENCY,244,315,54,14,ES_AUTOHSCROLL | ES_NUMBER | WS_TABSTOP
-    PUSHBUTTON      "&Test",IDC_AITOC_API_TEST,412,315,58,14
-    LTEXT           "Vision models recommended for TOC images.",IDC_AI_VISION_HINT,132,337,272,12
-    GROUPBOX        "Default AI conversation",IDC_AI_CHAT_GROUP,118,364,366,84
-    LTEXT           "Chat API:",IDC_AI_CHAT_PROFILE_LABEL,132,382,108,9
-    COMBOBOX        IDC_AI_CHAT_PROFILE,244,379,226,90,CBS_DROPDOWNLIST | WS_TABSTOP
-    LTEXT           "Chat model:",IDC_AI_CHAT_MODEL_LABEL,132,402,108,9
-    EDITTEXT        IDC_AI_CHAT_MODEL,244,399,162,14,ES_AUTOHSCROLL | WS_TABSTOP
-    PUSHBUTTON      "Choose...",IDC_AI_CHAT_CHOOSE,412,399,58,14
-    LTEXT           "Empty model inherits the selected API model.",IDC_AI_CHAT_HINT,132,424,338,16
+    GROUPBOX        "AI service",IDC_GROUP_AITOC_API,118,14,366,232
+    LTEXT           "Configuration:",IDC_AITOC_API_PROFILE_LABEL,132,34,108,9
+    COMBOBOX        IDC_AITOC_API_PROFILE,244,31,80,90,CBS_DROPDOWNLIST | WS_TABSTOP
+    PUSHBUTTON      "Rename...",IDC_AI_RENAME,330,31,44,14
+    PUSHBUTTON      "&Add",IDC_AITOC_API_ADD,380,31,42,14
+    PUSHBUTTON      "&Remove",IDC_AITOC_API_REMOVE,428,31,44,14
+    LTEXT           "API &base URL:",IDC_AITOC_API_BASEURL_LABEL,132,58,108,9
+    EDITTEXT        IDC_AITOC_API_BASEURL,244,55,226,14,ES_AUTOHSCROLL | WS_TABSTOP
+    LTEXT           "API &key:",IDC_AITOC_API_KEY_LABEL,132,82,108,9
+    EDITTEXT        IDC_AITOC_API_KEY,244,79,226,14,ES_AUTOHSCROLL | ES_PASSWORD | WS_TABSTOP
+    LTEXT           "&Model:",IDC_AITOC_API_MODEL_LABEL,132,106,108,9
+    EDITTEXT        IDC_AITOC_API_MODEL,244,103,162,14,ES_AUTOHSCROLL | WS_TABSTOP
+    PUSHBUTTON      "&Choose...",IDC_AITOC_API_FETCH_MODELS,412,103,58,14
+    LTEXT           "Shared by chat, translation and contents recognition.",IDC_AI_SERVICE_HINT,132,130,272,16
+    PUSHBUTTON      "Test connection",IDC_AITOC_API_TEST,400,127,70,14
+    LTEXT           "DeepSeek request options",IDC_DEEPSEEK_GROUP,132,153,338,12
+    CONTROL         "Enable thinking",IDC_DEEPSEEK_THINKING,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,132,175,104,10
+    LTEXT           "Reasoning effort:",IDC_DEEPSEEK_EFFORT_LABEL,244,175,76,9
+    COMBOBOX        IDC_DEEPSEEK_EFFORT,324,172,146,70,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Enable web search",IDC_DEEPSEEK_SEARCH,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,132,197,338,10
+    LTEXT           "Applies to all DeepSeek API requests. Both switches are off by default.",IDC_DEEPSEEK_HINT,132,219,338,16
+
+    GROUPBOX        "Inline translation",IDC_GROUP_INLINE_TRANSLATE,118,254,366,152
+    CONTROL         "Enable &inline translate",IDC_ENABLE_INLINE_TRANSLATE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,132,272,340,10
+    LTEXT           "Target &language:",IDC_TRANSLATE_TARGET_LABEL,132,294,108,9
+    COMBOBOX        IDC_TRANSLATE_TARGET,244,291,226,120,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Uses the AI service above. Optional Volc translation takes priority when configured.",IDC_TRANSLATE_HINT,132,314,338,16
+    PUSHBUTTON      "Volc translation (optional)",IDC_AI_VOLC_EXPAND,132,336,338,16,BS_LEFT
+    LTEXT           "Volc &Access Key:",IDC_TRANSLATE_VOLC_AK_LABEL,132,363,108,9
+    EDITTEXT        IDC_TRANSLATE_VOLC_AK,244,360,226,14,ES_AUTOHSCROLL | ES_PASSWORD | WS_TABSTOP
+    LTEXT           "Volc &Secret Key:",IDC_TRANSLATE_VOLC_SK_LABEL,132,387,108,9
+    EDITTEXT        IDC_TRANSLATE_VOLC_SK,244,384,162,14,ES_AUTOHSCROLL | ES_PASSWORD | WS_TABSTOP
+    PUSHBUTTON      "&Test",IDC_TRANSLATE_VOLC_TEST,412,384,58,14
+
+    GROUPBOX        "Advanced settings",IDC_AI_CHAT_GROUP,118,414,366,202
+    PUSHBUTTON      "Advanced settings",IDC_AI_ADVANCED_EXPAND,132,432,338,16,BS_LEFT
+    LTEXT           "Chat follows the AI service above.",IDC_AI_CHAT_STATUS,132,454,338,16
+    LTEXT           "&Parallel (1-8):",IDC_AITOC_API_CONCURRENCY_LABEL,132,479,108,9
+    EDITTEXT        IDC_AITOC_API_CONCURRENCY,244,476,54,14,ES_AUTOHSCROLL | ES_NUMBER | WS_TABSTOP
+    LTEXT           "Vision models recommended for TOC images.",IDC_AI_VISION_HINT,132,500,338,12
+    CONTROL         "Use a separate service or model for chat",IDC_AI_CHAT_OVERRIDE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,132,521,338,10
+    LTEXT           "Chat API:",IDC_AI_CHAT_PROFILE_LABEL,132,545,108,9
+    COMBOBOX        IDC_AI_CHAT_PROFILE,244,542,226,90,CBS_DROPDOWNLIST | WS_TABSTOP
+    LTEXT           "Chat model:",IDC_AI_CHAT_MODEL_LABEL,132,569,108,9
+    EDITTEXT        IDC_AI_CHAT_MODEL,244,566,162,14,ES_AUTOHSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Choose...",IDC_AI_CHAT_CHOOSE,412,566,58,14
+    LTEXT           "Empty model inherits the selected API model.",IDC_AI_CHAT_HINT,132,593,338,16
 
     GROUPBOX        "Window",IDC_GROUP_WINDOW,118,14,366,58
     CONTROL         "E&xit the application with Esc",IDC_ESC_TO_EXIT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,132,32,340,10

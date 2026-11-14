@@ -1183,36 +1183,21 @@ static void ThumbnailRenderFinished(ThumbnailRenderData* d, PageRenderRequest* r
     delete d;
 }
 
-static RectF GetThumbnailCropRect(EngineBase* engine, int pageNo, Size targetSize) {
-    RectF pageRect = engine->PageMediabox(pageNo);
-    if (pageRect.IsEmpty() || targetSize.dx <= 0 || targetSize.dy <= 0) {
-        return pageRect;
-    }
-
-    pageRect = engine->Transform(pageRect, pageNo, 1.0f, 0);
-    float targetAspect = (float)targetSize.dx / (float)targetSize.dy;
-    float pageAspect = pageRect.dx / pageRect.dy;
-    if (pageAspect > targetAspect) {
-        float cropDx = pageRect.dy * targetAspect;
-        pageRect.x += (pageRect.dx - cropDx) / 2.f;
-        pageRect.dx = cropDx;
-    } else {
-        float cropDy = pageRect.dx / targetAspect;
-        pageRect.y += (pageRect.dy - cropDy) / 2.f;
-        pageRect.dy = cropDy;
-    }
-    return engine->Transform(pageRect, pageNo, 1.0f, 0, true);
+static float GetThumbnailZoom(EngineBase* engine, const RectF& page, Size size) {
+    RectF bounds = engine->Transform(page, 1, 1.0f, 0);
+    if (bounds.IsEmpty()) return 1.0f;
+    return std::min((float)size.dx / bounds.dx, (float)size.dy / bounds.dy);
 }
 
 void ControllerCallbackHandler::RenderThumbnail(DisplayModel* dm, Size size, const OnBitmapRendered* saveThumbnail) {
     auto engine = dm->GetEngine();
-    RectF pageRect = GetThumbnailCropRect(engine, 1, size);
+    RectF pageRect = engine->PageMediabox(1);
     if (pageRect.IsEmpty()) {
         // saveThumbnail must always be called for clean-up code
         saveThumbnail->Call(nullptr);
         return;
     }
-    float zoom = size.dx / (float)pageRect.dx;
+    float zoom = GetThumbnailZoom(engine, pageRect, size);
 
     // always render thumbnails with anti-aliasing for quality
     bool savedAntiAlias = engine->disableAntiAlias;
@@ -1250,13 +1235,13 @@ static void CreateThumbnailFromFileThread(CreateThumbnailFromFileData* d) {
         delete d;
         return;
     }
-    RectF pageRect = GetThumbnailCropRect(engine, 1, Size{kThumbnailDx, kThumbnailDy});
+    RectF pageRect = engine->PageMediabox(1);
     if (pageRect.IsEmpty()) {
         engine->Release();
         delete d;
         return;
     }
-    float zoom = (float)kThumbnailDx / (float)pageRect.dx;
+    float zoom = GetThumbnailZoom(engine, pageRect, Size{kThumbnailDx, kThumbnailDy});
     RenderPageArgs args(1, zoom, 0, &pageRect);
     d->bmp = engine->RenderPage(args);
     engine->Release();
@@ -11253,20 +11238,6 @@ static TempStr BuildDoubaoPromptTemp(const char* selection, DoubaoPromptKind kin
     return str::FormatTemp("%s", trimmed);
 }
 
-static AiChatService ActiveAiChatService() {
-    if (!gGlobalPrefs) {
-        return AiChatService::Doubao;
-    }
-    const char* p = gGlobalPrefs->aiChatProvider;
-    if (str::EqI(p, "deepseek")) {
-        return AiChatService::DeepSeek;
-    }
-    if (str::EqI(p, "chatgpt")) {
-        return AiChatService::ChatGPT;
-    }
-    return AiChatService::Doubao;
-}
-
 static void AnalyzeSelectionWithDoubao(WindowTab* tab) {
     if (!tab || !tab->win || !gGlobalPrefs->enableAskAI || !HasPermission(Perm::InternetAccess) ||
         !HasPermission(Perm::CopySelection)) {
@@ -11295,24 +11266,8 @@ static void AnalyzeSelectionWithDoubao(WindowTab* tab) {
         return;
     }
 
-    // Prefer in-app API panel when AiToc API is configured; otherwise open web chat.
-    AiTocApiConfig cfg;
-    cfg.baseUrl = gGlobalPrefs->aiTocApiBaseUrl;
-    cfg.key = gGlobalPrefs->aiTocApiKey;
-    cfg.model = gGlobalPrefs->aiTocApiModel;
-    if (AiTocApiIsConfigured(cfg)) {
-        AskAiSelectionInTab(tab->win, tab, selText, prompt);
-        return;
-    }
-
-    AiChatService service = ActiveAiChatService();
-    LaunchAiChatWithPromptAsync(service, prompt);
-
-    NotificationCreateArgs args;
-    args.hwndParent = tab->win->hwndCanvas;
-    args.msg = _TRA("Question sent to AI.");
-    args.timeoutMs = 5000;
-    ShowNotification(args);
+    // API chat uses its selected profile and reports missing credentials inline.
+    AskAiSelectionInTab(tab->win, tab, selText, prompt);
 }
 
 // TODO: rather arbitrary divide of responsibility between this and CopySelectionToClipboard()
@@ -12743,6 +12698,9 @@ static LRESULT FrameOnCommand(MainWindow* win, HWND hwnd, UINT msg, WPARAM wp, L
             StartAsyncUpdateCheck(win, UpdateCheck::UserInitiated);
             break;
 
+        case CmdAiSettings:
+            ShowOptionsDialog(win, kSettingsPageAi);
+            break;
         case CmdOptions:
             ShowOptionsDialog(win);
             break;
@@ -17082,6 +17040,8 @@ static void ShowDocumentImageDarkMenu(MainWindow* win, NMTOOLBARW* nmtb) {
     if (!menu) {
         return;
     }
+    AppendThemesToMenu(menu);
+    AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
     // Image strategy only applies while Match-theme is on (toolbar button pressed)
     // under a dark chrome theme. Leave the dropdown items grayed when the button
     // is up (document colors = original).
@@ -17094,14 +17054,24 @@ static void ShowDocumentImageDarkMenu(MainWindow* win, NMTOOLBARW* nmtb) {
                         enabled);
     AppendImageDarkItem(menu, CmdSetDocumentImageDarkOriginal, "Images: Keep Original Colors",
                         PdfImageDarkStrategy::Original, current, enabled);
+    MarkMenuOwnerDraw(menu);
     SetForegroundWindow(win->hwndFrame);
     UINT selected = (UINT)TrackPopupMenu(menu, TPM_RETURNCMD | TPM_LEFTALIGN | TPM_TOPALIGN, rc.left, rc.bottom, 0,
                                          win->hwndFrame, nullptr);
+    FreeMenuOwnerDrawInfoData(menu);
     DestroyMenu(menu);
     if (selected == 0) {
         return;
     }
+    CustomCommand* choice = FindCustomCommand(selected);
+    bool themeChoice = choice && choice->origId == CmdSetTheme;
+    bool enableDocumentTheme = themeChoice && GetPdfDocumentColorMode() == PdfDocumentColorMode::Light;
+    bool sameTheme = themeChoice && str::EqI(GetCommandStringArg(choice, kCmdArgTheme, nullptr), gGlobalPrefs->theme);
+    if (enableDocumentTheme) SetPdfDocumentColorMode(PdfDocumentColorMode::Auto);
     SendMessageW(win->hwndFrame, WM_COMMAND, selected, 0);
+    // Selecting the current theme does not trigger a theme change, but must
+    // still recolor an Original-mode document and finish EPUB layout safely.
+    if (enableDocumentTheme && sameTheme) UpdateDocumentColors(true);
 }
 
 HMENU BuildOcrToolbarMenu(MainWindow* win) {

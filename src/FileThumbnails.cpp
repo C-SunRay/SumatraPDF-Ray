@@ -24,7 +24,7 @@ static bool IsThumbnailStale(const char* filePath, const char* thumbPath) {
     return FileTimeDiffInSecs(fileTime, bmpTime) > 0;
 }
 
-char* GetThumbnailPathTemp(const char* filePath) {
+static char* GetThumbnailPathForVersionTemp(const char* filePath, bool portrait) {
     // create a fingerprint of a (normalized) path for the file name
     // I'd have liked to also include the file's last modification time
     // in the fingerprint (much quicker than hashing the entire file's
@@ -47,8 +47,12 @@ char* GetThumbnailPathTemp(const char* filePath) {
         return nullptr;
     }
 
-    TempStr res = path::JoinTemp(thumbsDir, str::JoinTemp(fingerPrint, ".png"));
+    TempStr res = path::JoinTemp(thumbsDir, str::JoinTemp(fingerPrint, portrait ? ".portrait.png" : ".png"));
     return res;
+}
+
+char* GetThumbnailPathTemp(const char* filePath) {
+    return GetThumbnailPathForVersionTemp(filePath, true);
 }
 
 TempStr GetThumbnailCacheDirTemp() {
@@ -64,6 +68,7 @@ void DeleteThumbnailCacheDirectory() {
 void DeleteThumbnailForFile(const char* filePath) {
     TempStr thumbPath = GetThumbnailPathTemp(filePath);
     bool ok = file::Delete(thumbPath);
+    file::Delete(GetThumbnailPathForVersionTemp(filePath, false));
     auto status = ok ? "ok" : "failed";
     logf("DeleteThumbnailForFile: file::Remove('%s') %s\n", thumbPath, status);
 }
@@ -83,6 +88,8 @@ RenderedBitmap* LoadThumbnail(FileState* fs) {
     }
 
     RenderedBitmap* bmp = LoadRenderedBitmap(bmpPath);
+    // Keep history previews while old covers await regeneration on document open.
+    if (!bmp) bmp = LoadRenderedBitmap(GetThumbnailPathForVersionTemp(fs->filePath, false));
     if (!bmp || bmp->GetSize().IsEmpty()) {
         delete bmp;
         return nullptr;
@@ -102,7 +109,7 @@ bool HasThumbnail(FileState* fs) {
     if (!bmpPath) {
         return true;
     }
-    if (IsThumbnailStale(fs->filePath, bmpPath)) {
+    if (!file::Exists(bmpPath) || IsThumbnailStale(fs->filePath, bmpPath)) {
         delete fs->thumbnail;
         fs->thumbnail = nullptr;
     }

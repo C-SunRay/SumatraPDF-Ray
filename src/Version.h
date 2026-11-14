@@ -54,8 +54,8 @@
 #define kCopyrightStr "Copyright 2006-2026 all authors (GPLv3)"
 #define kPublisherStr "Krzysztof Kowalczyk"
 
-#define kAppName "Sumatra PDF Plus"
+#define kAppName "SumatraPDF-Ray"
 
-#define kPlusRepoURL "https://github.com/dengxibo/sumatrapdf-plus"
-#define kPlusIssuesURL "https://github.com/dengxibo/sumatrapdf-plus/issues"
-#define kPlusReadmeURL "https://github.com/dengxibo/sumatrapdf-plus/blob/main/readme.txt"
+#define kPlusRepoURL "https://github.com/C-SunRay/SumatraPDF-Ray"
+#define kPlusIssuesURL "https://github.com/C-SunRay/SumatraPDF-Ray/issues"
+#define kPlusReadmeURL "https://github.com/C-SunRay/SumatraPDF-Ray/blob/ray/readme.txt"

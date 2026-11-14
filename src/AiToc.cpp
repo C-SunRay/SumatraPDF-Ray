@@ -576,11 +576,13 @@ static void AiTocFillApiConfig(AiTocApiConfig* cfg) {
     cfg->key = gGlobalPrefs ? gGlobalPrefs->aiTocApiKey : nullptr;
     cfg->model = gGlobalPrefs ? gGlobalPrefs->aiTocApiModel : nullptr;
     cfg->concurrency = gGlobalPrefs ? gGlobalPrefs->aiTocApiConcurrency : 4;
+    AiTocApiApplyDeepSeekPrefs(*cfg, gGlobalPrefs);
 }
 
 static void AiTocSnapshotApiConfig(AiTocApiConfig* cfg) {
     AiTocApiConfig current;
     AiTocFillApiConfig(&current);
+    *cfg = current;
     cfg->baseUrl = str::Dup(current.baseUrl);
     cfg->key = str::Dup(current.key);
     cfg->model = str::Dup(current.model);

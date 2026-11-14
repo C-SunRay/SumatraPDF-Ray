@@ -50,6 +50,7 @@ const char* gInstalledFiles[] = {
     "PdfFilter.dll",
     "PdfPreview.dll",
     // those probably won't delete because in use
+    "SumatraPDF-Ray.exe",
     "SumatraPDF-Plus.exe",
     "SumatraPDF.exe",
     "RA-MICRO PDF Viewer.exe",

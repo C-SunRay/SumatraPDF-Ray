@@ -58,3 +58,17 @@ docs/md/.obsidian
 /ocr/*.dll
 /ocr/*.pdb
 /out/**/ocr/
+
+# Ray: local configuration and credentials must never be published.
+**/SumatraPDF-settings.txt
+**/sumatrapdfcache/
+.env
+.env.*
+!.env.example
+*.pfx
+*.p12
+*.key
+*.dmp
+*.log
+/work/
+/outputs/

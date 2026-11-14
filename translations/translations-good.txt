@@ -3620,27 +3620,27 @@ tr:Not
 tw:說明
 uk:Нотатка
 vn:Ghi chú
-:About Sumatra PDF Plus
-am:SumatraPDF-ի մասին
-br:Sobre o SumatraPDF
-cn:关于 Sumatra PDF Plus
-co:Apprupositu di SumatraPDF
-de:Über SumatraPDF
-el:Σχετικά με το SumatraPDF
-es:Acerca de SumatraPDF
-fr:À propos de SumatraPDF
-it:Informazioni su SumatraPDF
-ja:SumatraPDF のバージョン情報
-kr:SumatraPDF 정보
-nl:Over SumatraPDF
-pl:O programie SumatraPDF
-pt:Acerca de SumatraPDF
-ru:О программе SumatraPDF
-sk:O programe SumatraPDF
-tr:SumatraPDF Hakkında
-tw:關於 SumatraPDF
-uk:Про програму SumatraPDF
-vn:Giới thiệu SumatraPDF
+:About SumatraPDF-Ray
+am:SumatraPDF-Ray-ի մասին
+br:Sobre o SumatraPDF-Ray
+cn:关于 SumatraPDF-Ray
+co:Apprupositu di SumatraPDF-Ray
+de:Über SumatraPDF-Ray
+el:Σχετικά με το SumatraPDF-Ray
+es:Acerca de SumatraPDF-Ray
+fr:À propos de SumatraPDF-Ray
+it:Informazioni su SumatraPDF-Ray
+ja:SumatraPDF-Ray のバージョン情報
+kr:SumatraPDF-Ray 정보
+nl:Over SumatraPDF-Ray
+pl:O programie SumatraPDF-Ray
+pt:Acerca de SumatraPDF-Ray
+ru:О программе SumatraPDF-Ray
+sk:O programe SumatraPDF-Ray
+tr:SumatraPDF-Ray Hakkında
+tw:關於 SumatraPDF-Ray
+uk:Про програму SumatraPDF-Ray
+vn:Giới thiệu SumatraPDF-Ray
 :Add
 br:Adicionar
 cn:添加
@@ -20936,19 +20936,19 @@ tr:El yazısı imza
 tw:手寫簽名
 uk:Рукописний підпис
 vn:Chữ ký viết tay
-:Help: About Sumatra PDF Plus
-am:Օգնություն՝ SumatraPDF-ի մասին
-br:Ajuda: Sobre o SumatraPDF
-cn:帮助: 关于 Sumatra PDF Plus
-co:Aiutu : Apprupositu di SumatraPDF
-de:Hilfe: Über SumatraPDF
-el:Βοήθεια: Σχετικά με το SumatraPDF
-it:Aiuto: Informazioni su SumatraPDF
-nl:Help: Over SumatraPDF
-pl:Pomoc: o programie SumatraPDF
-ru:Справка: О SumatraPDF
-sk:Pomoc: O programe SumatraPDF
-tw:說明：關於 SumatraPDF
+:Help: About SumatraPDF-Ray
+am:Օգնություն՝ SumatraPDF-Ray-ի մասին
+br:Ajuda: Sobre o SumatraPDF-Ray
+cn:帮助: 关于 SumatraPDF-Ray
+co:Aiutu : Apprupositu di SumatraPDF-Ray
+de:Hilfe: Über SumatraPDF-Ray
+el:Βοήθεια: Σχετικά με το SumatraPDF-Ray
+it:Aiuto: Informazioni su SumatraPDF-Ray
+nl:Help: Over SumatraPDF-Ray
+pl:Pomoc: o programie SumatraPDF-Ray
+ru:Справка: О SumatraPDF-Ray
+sk:Pomoc: O programe SumatraPDF-Ray
+tw:說明：關於 SumatraPDF-Ray
 :Help: Keyboard Shortcuts
 am:Օգնություն՝ Ստեղնաշարի կարճ ստեղներ
 br:Ajuda: Atalhos do Teclado
@@ -23388,6 +23388,9 @@ tr:Işık kaynağı:
 tw:光源：
 uk:Джерело світла:
 vn:Nguồn sáng:
+:Light-Green
+cn:浅色-绿色
+tw:淺色-綠色
 :Light-Warm
 br:Claro-quente
 cn:浅色-暖色
@@ -28934,18 +28937,18 @@ tr:Yeni dosyaları mevcut örnekte aç
 tw:在現有執行個體開啟新檔案
 uk:Відкривати нові файли в уже запущеному вікні
 vn:Mở tệp mới trong cửa sổ đang chạy
-:Open New Sumatra PDF Plus Window
-am:Բացել նոր SumatraPDF պատուհանը
-br:Abrir Nova Janela do SumatraPDF
-cn:打开新的 Sumatra PDF Plus 窗口
-co:Apre una finestra nova di SumatraPDF
-de:Neues SumatraPDF-Fenster öffnen
-el:Άνοιγμα νέου παραθύρου SumatraPDF
-it:Apri nuova finestra di SumatraPDF
-nl:Open Nieuw SumatraPDF Venster
-pl:Otwórz nowe okno SumatraPDF
-sk:Otvoriť nové okno SumatraPDF
-tw:開啟新的 SumatraPDF 視窗
+:Open New SumatraPDF-Ray Window
+am:Բացել նոր SumatraPDF-Ray պատուհանը
+br:Abrir Nova Janela do SumatraPDF-Ray
+cn:打开新的 SumatraPDF-Ray 窗口
+co:Apre una finestra nova di SumatraPDF-Ray
+de:Neues SumatraPDF-Ray-Fenster öffnen
+el:Άνοιγμα νέου παραθύρου SumatraPDF-Ray
+it:Apri nuova finestra di SumatraPDF-Ray
+nl:Open Nieuw SumatraPDF-Ray Venster
+pl:Otwórz nowe okno SumatraPDF-Ray
+sk:Otvoriť nové okno SumatraPDF-Ray
+tw:開啟新的 SumatraPDF-Ray 視窗
 :Open Next File In Folder
 am:Բացել հաջորդ ֆայլը պանակից
 br:Abrir o Próximo Arquivo na Pasta
@@ -37389,6 +37392,9 @@ tr:'Dark-Dracula' temasını ayarla
 tw:設為「Dark-Dracula」主題
 uk:Встановити тему «Dark-Dracula»
 vn:Đặt giao diện 'Dark-Dracula'
+:Set theme 'Light-Green'
+cn:设为「Light-Green」绿色护眼主题
+tw:設為「Light-Green」綠色護眼主題
 :Set theme 'Light-Warm'
 am:Սահմանել 'Light-Warm' ձևավորումը
 br:Definir tema 'Light-Warm'
@@ -40539,78 +40545,78 @@ tr:SumatraPDF kılavuzu (kaynak proje)
 tw:SumatraPDF 手冊（上游）
 uk:Посібник SumatraPDF (вихідний проєкт)
 vn:Hướng dẫn SumatraPDF (dự án gốc)
-:SumatraPDF Options
-af:SumatraPDF Options
+:SumatraPDF-Ray Options
+af:SumatraPDF-Ray Options
 am:Ընտրանքներ
-ar:SumatraPDF Options
-az:SumatraPDF Options
-bg:SumatraPDF Options
-bn:SumatraPDF Options
-br:Opções do SumatraPDF
-bs:SumatraPDF Options
-by:SumatraPDF Options
-ca:SumatraPDF Options
-ca-xv:SumatraPDF Options
-cn:SumatraPDF 选项
-co:Ozzioni di SumatraPDF
-cy:SumatraPDF Options
-cz:SumatraPDF Options
-de:SumatraPDF-Optionen
-dk:SumatraPDF Options
-el:Επιλογές SumatraPDF
-es:Opciones de SumatraPDF
-et:SumatraPDF Options
-eu:SumatraPDF Options
-fa:SumatraPDF Options
-fi:SumatraPDF Options
-fo:SumatraPDF Options
-fr:Options SumatraPDF
-fy-nl:SumatraPDF Options
-ga:SumatraPDF Options
-gl:SumatraPDF Options
-he:SumatraPDF Options
-hi:SumatraPDF Options
-hr:SumatraPDF Options
-hu:SumatraPDF Options
-id:SumatraPDF Options
-it:Opzioni di SumatraPDF
-ja:SumatraPDF のオプション
-jv:SumatraPDF Options
-ka:SumatraPDF Options
-kr:SumatraPDF 옵션
-ku:SumatraPDF Options
-kw:SumatraPDF Options
-lt:SumatraPDF Options
-lv:SumatraPDF Options
-mk:SumatraPDF Options
-ml:SumatraPDF Options
-mm:SumatraPDF Options
-my:SumatraPDF Options
-ne:SumatraPDF Options
-nl:SumatraPDF Opties
-nn:SumatraPDF Options
-no:SumatraPDF Options
-pa:SumatraPDF Options
-pl:Opcje SumatraPDF
-pt:Opções do SumatraPDF
-ro:SumatraPDF Options
-ru:Параметры SumatraPDF
-si:SumatraPDF Options
-sk:Nastavenia SumatraPDF
-sl:SumatraPDF Options
-sn:SumatraPDF Options
-sp-rs:SumatraPDF Options
-sq:SumatraPDF Options
-sr-rs:SumatraPDF Options
-sv:SumatraPDF Options
-ta:SumatraPDF Options
-th:SumatraPDF Options
-tl:SumatraPDF Options
-tr:SumatraPDF Seçenekleri
-tw:SumatraPDF 選項
-uk:Опції SumatraPDF
-uz:SumatraPDF Options
-vn:Tuỳ chọn SumatraPDF
+ar:SumatraPDF-Ray Options
+az:SumatraPDF-Ray Options
+bg:SumatraPDF-Ray Options
+bn:SumatraPDF-Ray Options
+br:Opções do SumatraPDF-Ray
+bs:SumatraPDF-Ray Options
+by:SumatraPDF-Ray Options
+ca:SumatraPDF-Ray Options
+ca-xv:SumatraPDF-Ray Options
+cn:SumatraPDF-Ray 选项
+co:Ozzioni di SumatraPDF-Ray
+cy:SumatraPDF-Ray Options
+cz:SumatraPDF-Ray Options
+de:SumatraPDF-Ray-Optionen
+dk:SumatraPDF-Ray Options
+el:Επιλογές SumatraPDF-Ray
+es:Opciones de SumatraPDF-Ray
+et:SumatraPDF-Ray Options
+eu:SumatraPDF-Ray Options
+fa:SumatraPDF-Ray Options
+fi:SumatraPDF-Ray Options
+fo:SumatraPDF-Ray Options
+fr:Options SumatraPDF-Ray
+fy-nl:SumatraPDF-Ray Options
+ga:SumatraPDF-Ray Options
+gl:SumatraPDF-Ray Options
+he:SumatraPDF-Ray Options
+hi:SumatraPDF-Ray Options
+hr:SumatraPDF-Ray Options
+hu:SumatraPDF-Ray Options
+id:SumatraPDF-Ray Options
+it:Opzioni di SumatraPDF-Ray
+ja:SumatraPDF-Ray のオプション
+jv:SumatraPDF-Ray Options
+ka:SumatraPDF-Ray Options
+kr:SumatraPDF-Ray 옵션
+ku:SumatraPDF-Ray Options
+kw:SumatraPDF-Ray Options
+lt:SumatraPDF-Ray Options
+lv:SumatraPDF-Ray Options
+mk:SumatraPDF-Ray Options
+ml:SumatraPDF-Ray Options
+mm:SumatraPDF-Ray Options
+my:SumatraPDF-Ray Options
+ne:SumatraPDF-Ray Options
+nl:SumatraPDF-Ray Opties
+nn:SumatraPDF-Ray Options
+no:SumatraPDF-Ray Options
+pa:SumatraPDF-Ray Options
+pl:Opcje SumatraPDF-Ray
+pt:Opções do SumatraPDF-Ray
+ro:SumatraPDF-Ray Options
+ru:Параметры SumatraPDF-Ray
+si:SumatraPDF-Ray Options
+sk:Nastavenia SumatraPDF-Ray
+sl:SumatraPDF-Ray Options
+sn:SumatraPDF-Ray Options
+sp-rs:SumatraPDF-Ray Options
+sq:SumatraPDF-Ray Options
+sr-rs:SumatraPDF-Ray Options
+sv:SumatraPDF-Ray Options
+ta:SumatraPDF-Ray Options
+th:SumatraPDF-Ray Options
+tl:SumatraPDF-Ray Options
+tr:SumatraPDF-Ray Seçenekleri
+tw:SumatraPDF-Ray 選項
+uk:Опції SumatraPDF-Ray
+uz:SumatraPDF-Ray Options
+vn:Tuỳ chọn SumatraPDF-Ray
 :SumatraPDF Update
 am:SumatraPDF-ի թարմացումներ
 br:Atualização do SumatraPDF
@@ -47833,3 +47839,94 @@ tw:目錄仍在載入，請稍後重試。
 :No table of contents entry matches the current position.
 cn:当前位置没有对应目录项。
 tw:目前位置沒有對應目錄項目。
+
+:Enable thinking
+cn:启用思考模式
+tw:啟用思考模式
+
+:Reasoning effort:
+cn:推理强度：
+tw:推理強度：
+
+:Enable web search
+cn:启用联网搜索
+tw:啟用聯網搜尋
+
+:Applies to all DeepSeek API requests. Both switches are off by default.
+cn:适用于所有 DeepSeek API 请求。思考和联网默认关闭。
+tw:適用於所有 DeepSeek API 請求。思考和聯網預設關閉。
+
+:Low
+cn:低（Low）
+tw:低（Low）
+
+:High
+cn:高（High）
+tw:高（High）
+
+:Maximum
+cn:最高（Max）
+tw:最高（Max）
+
+:Sources:
+cn:来源：
+tw:來源：
+
+:AI Settings...
+cn:AI 设置...
+
+:Bookshelf
+cn:书架
+tw:書架
+
+
+:AI service
+cn:AI 服务
+
+:Configuration:
+cn:配置：
+
+:Rename...
+cn:重命名...
+
+:Rename AI configuration
+cn:重命名 AI 配置
+
+:Shared by chat, translation and contents recognition.
+cn:用于对话、翻译和目录识别。
+
+:Test connection
+cn:测试连接
+
+:DeepSeek request options
+cn:DeepSeek 请求选项
+
+:Inline translation
+cn:划词翻译
+
+:Uses the AI service above. Optional Volc translation takes priority when configured.
+cn:默认使用上方 AI 服务；配置火山翻译后优先使用，失败时回退到 AI。
+
+:Volc translation (optional)
+cn:火山翻译（可选）
+
+: - configured
+cn: · 已配置
+
+:Advanced settings
+cn:高级设置
+
+:- Hide advanced settings
+cn:− 收起高级设置
+
+:+ Show advanced settings
+cn:+ 展开高级设置
+
+:Chat follows the AI service above.
+cn:AI 对话：跟随上方 AI 服务和模型。
+
+:Separate chat configuration is enabled.
+cn:AI 对话：已启用独立配置。
+
+:Use a separate service or model for chat
+cn:为 AI 对话单独指定服务和模型

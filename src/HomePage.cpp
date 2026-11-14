@@ -877,7 +877,7 @@ void ShowAboutWindow(MainWindow* win) {
         ReportIf(!gAtomAbout);
     }
 
-    TempWStr title = ToWStrTemp(_TRA("About Sumatra PDF Plus"));
+    TempWStr title = ToWStrTemp(_TRA("About SumatraPDF-Ray"));
     DWORD style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU;
     int x = CW_USEDEFAULT;
     int y = CW_USEDEFAULT;
@@ -977,6 +977,10 @@ static HFONT HomePageUiFont(HWND hwnd, int deltaPx96, int weight) {
 
 static HFONT HomePageFileNameFont(HWND hwnd) {
     return HomePageUiFont(hwnd, 2, FW_MEDIUM);
+}
+
+static HFONT HomePageHeadingFont(HWND hwnd) {
+    return HomePageUiFont(hwnd, 6, FW_SEMIBOLD);
 }
 
 // Soften theme ink so home-page type isn't max-contrast black on beige.
@@ -1131,6 +1135,10 @@ static void ComputeHomeThumbGrid(HWND dpiHwnd, int canvasDx, int& colsOut, int& 
         dx = 120;
     }
 
+    // Keep covers at 70% of the previous responsive card size. Repack columns
+    // without growing the cards back to fill the available width.
+    dx = MulDiv(dx, 70, 100);
+    cols = std::max(1, (avail + gapX) / (dx + gapX));
     int thumbDy = (dx * kThumbnailDy + kThumbnailDx / 2) / kThumbnailDx;
     int content = cols * dx + (cols - 1) * gapX;
     int startX = marginL + std::max(0, (avail - content) / 2);
@@ -1256,6 +1264,7 @@ struct HomePageLayout {
     Rect rcIconView;
     Rect rcIconSort;
     Rect rcIconOpen;
+    Rect rcBookshelfHeading;
     VirtWndText* openDoc = nullptr;
 
     HIMAGELIST himlOpen = nullptr;
@@ -1360,7 +1369,7 @@ void HomePageDestroySearch(MainWindow* win) {
 void HomePageOnLanguageChangedAll() {
     ResetTipsParsed();
     if (gHwndAbout) {
-        HwndSetText(gHwndAbout, _TRA("About Sumatra PDF Plus"));
+        HwndSetText(gHwndAbout, _TRA("About SumatraPDF-Ray"));
         InvalidateRect(gHwndAbout, nullptr, TRUE);
     }
     for (MainWindow* win : gWindows) {
@@ -2033,6 +2042,18 @@ void LayoutHomePage(HomePageLayout& l) {
             rightEdge = l.rcIconOpen.x - DpiScale(dpiHwnd, 18);
         }
         borderDx = std::max(DpiScale(dpiHwnd, 200), rightEdge - borderX);
+        // Use one fifth of the old search width, with a usable minimum on
+        // narrow windows. Keep view/sort attached to the compact search group.
+        borderDx = std::max(DpiScale(dpiHwnd, 120), MulDiv(borderDx, 20, 100));
+        int controlsGap = DpiScale(dpiHwnd, 18);
+        if (isRtl) {
+            borderX = rightEdge - borderDx;
+            l.rcIconView.x = borderX - controlsGap - cellDx;
+            l.rcIconSort.x = l.rcIconView.x - itemGap - cellDx;
+        } else {
+            l.rcIconView.x = borderX + borderDx + controlsGap;
+            l.rcIconSort.x = l.rcIconView.x + cellDx + itemGap;
+        }
         int borderDy = searchEditDy + 2 * searchPadY;
         l.rcSearchBorder = {borderX, borderY, borderDx, borderDy};
         // Center every header control on the search field's visual center.
@@ -2060,6 +2081,13 @@ void LayoutHomePage(HomePageLayout& l) {
     }
     headerBottomY = hdrY + std::max(headerRowDy, searchEditDy + 2 * searchPadY) + searchThumbsGap;
 
+    // A fixed section heading separates the search controls from the book cards.
+    int headingDy = HomePageFontLineDy(dpiHwnd, HomePageHeadingFont(dpiHwnd));
+    int shelfWidth = thumbsColsForLayout * thumbDx + (thumbsColsForLayout - 1) * thumbGapX;
+    l.rcBookshelfHeading = {thumbsStartX, headerBottomY, shelfWidth, headingDy};
+    if (isRtl) l.rcBookshelfHeading.x = rc.dx - thumbsStartX - shelfWidth;
+    headerBottomY += headingDy + DpiScale(dpiHwnd, 16);
+
     // --- Step 2: calculate tip area at the bottom (before thumbnails) ---
     int tipHeight = 0;
     HFONT fontTip = GetAppFontForHwnd(dpiHwnd);
@@ -2081,7 +2109,7 @@ void LayoutHomePage(HomePageLayout& l) {
     }
 
     // --- Step 3: middle area for thumbnails ---
-    // thumbnails start directly after headerBottomY (which includes kSearchThumbnailsGapY)
+    // Cards begin below the fixed Bookshelf heading and its selection-safe gap.
     int thumbsTopY = headerBottomY;
     l.thumbsStartX = thumbsStartX;
     l.thumbsTopY = thumbsTopY;
@@ -2316,6 +2344,14 @@ static void DrawThumbnailPlaceholder(HDC hdc, FileState* fs, const Rect& page) {
     DestroyIcon(sfi.hIcon);
 }
 
+static Rect FitThumbnailInRect(Size src, Rect dst) {
+    if (src.dx <= 0 || src.dy <= 0) return dst;
+    double scale = std::min((double)dst.dx / src.dx, (double)dst.dy / src.dy);
+    int dx = std::max(1, (int)(src.dx * scale + 0.5));
+    int dy = std::max(1, (int)(src.dy * scale + 0.5));
+    return Rect(dst.x + (dst.dx - dx) / 2, dst.y + (dst.dy - dy) / 2, dx, dy);
+}
+
 static void DrawThumbnailCard(HDC hdc, const Rect& page, FileState* fs, RenderedBitmap* thumbImg, HPEN borderPen,
                               bool fastDraw = false) {
     if (!fastDraw) {
@@ -2330,9 +2366,7 @@ static void DrawThumbnailCard(HDC hdc, const Rect& page, FileState* fs, Rendered
         }
         showPlaceholder = fs->thumbnailIsBlank;
     }
-    if (showPlaceholder) {
-        FillRoundedRect(hdc, page, kThumbCornerRadius, ThemeThumbnailBackgroundColor());
-    }
+    FillRoundedRect(hdc, page, kThumbCornerRadius, ThemeThumbnailBackgroundColor());
 
     {
         int savedDC = SaveDC(hdc);
@@ -2342,7 +2376,7 @@ static void DrawThumbnailCard(HDC hdc, const Rect& page, FileState* fs, Rendered
         if (showPlaceholder) {
             DrawThumbnailPlaceholder(hdc, fs, page);
         } else {
-            thumbImg->Blit(hdc, page);
+            thumbImg->Blit(hdc, FitThumbnailInRect(thumbImg->GetSize(), page));
         }
         RestoreDC(hdc, savedDC);
         DeleteObject(clip);
@@ -2362,23 +2396,6 @@ static void DrawHomeThumbSelection(HWND hwnd, HDC hdc, const Rect& page) {
     int radius = kThumbCornerRadius + inflate;
     AutoDeletePen selPen(CreatePen(PS_SOLID, penW, ThemeSelectionFrameColor()));
     DrawRoundedRectBorder(hdc, frame, radius, selPen);
-}
-
-// Scale to fill dest and crop overflow (CSS background-size: cover).
-static Rect CoverRectInRect(Size src, Rect dst) {
-    if (src.dx <= 0 || src.dy <= 0 || dst.dx <= 0 || dst.dy <= 0) {
-        return dst;
-    }
-    double scale = std::max((double)dst.dx / src.dx, (double)dst.dy / src.dy);
-    int dx = (int)(src.dx * scale + 0.999);
-    int dy = (int)(src.dy * scale + 0.999);
-    if (dx < dst.dx) {
-        dx = dst.dx;
-    }
-    if (dy < dst.dy) {
-        dy = dst.dy;
-    }
-    return {dst.x + (dst.dx - dx) / 2, dst.y + (dst.dy - dy) / 2, dx, dy};
 }
 
 bool HomePagePathIsSelected(MainWindow* win, const char* path) {
@@ -2428,7 +2445,7 @@ static void DrawListItemRow(HWND hwnd, HDC hdc, const ThumbnailLayout& item, Str
         HRGN clip = CreateRoundRectRgn(thumbBox.x, thumbBox.y, thumbBox.x + thumbBox.dx, thumbBox.y + thumbBox.dy,
                                        thumbRadius, thumbRadius);
         ExtSelectClipRgn(hdc, clip, RGN_AND);
-        thumbImg->Blit(hdc, CoverRectInRect(thumbImg->GetSize(), thumbBox));
+        thumbImg->Blit(hdc, FitThumbnailInRect(thumbImg->GetSize(), thumbBox));
         RestoreDC(hdc, savedDC);
         DeleteObject(clip);
     }
@@ -2562,6 +2579,16 @@ static void DrawHomePageLayout(HomePageLayout& l) {
     SetTextColor(hdc, ThemeWindowLinkColor());
     l.openDoc->SetBounds(openText);
     l.openDoc->Paint(hdc);
+
+    {
+        HFONT oldFont = (HFONT)SelectObject(hdc, HomePageHeadingFont(win->hwndCanvas));
+        SetTextColor(hdc, ThemeWindowTextColor());
+        const Rect& r = l.rcBookshelfHeading;
+        RECT headingRect = {r.x, r.y, r.x + r.dx, r.y + r.dy};
+        DrawTextW(hdc, _TRW("Bookshelf"), -1, &headingRect,
+                  DT_SINGLELINE | DT_VCENTER | DT_END_ELLIPSIS | DT_NOPREFIX | (isRtl ? DT_RIGHT : DT_LEFT));
+        SelectObject(hdc, oldFont);
+    }
 
     // clip file list to the middle area
     {

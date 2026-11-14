@@ -587,3 +587,7 @@ When the window becomes narrow, lower-priority tools move into the **More tools*
 
 
 `CmdCapturePageRegion` starts document region capture. The toolbar button beside the annotation tools lets you drag a region without holding Shift+Alt. Release the pointer to preview and save the image; press Escape to cancel. It is available for fixed-layout documents that allow copying, and follows the annotation toolbar visibility setting. In narrow windows it hides with the annotation buttons and has no separate entry in More tools; Shift+Alt+drag remains available.
+
+### CmdAiSettings
+
+Open Options directly on the complete AI settings page (toolbar AI button).

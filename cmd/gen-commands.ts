@@ -46,7 +46,7 @@ export const commands = [
     "CmdSearchSelectionWithWikipedia", "Search Selection with Wikipedia",
     "CmdSearchSelectionWithGoogleScholar", "Search Selection with Google Scholar",
     "CmdSelectAll", "Select All",
-    "CmdNewWindow", "Open New Sumatra PDF Plus Window",
+    "CmdNewWindow", "Open New SumatraPDF-Ray Window",
     "CmdDuplicateInNewWindow", "Open Current Document In New Window",
     "CmdDuplicateInNewTab", "Open Current Document In New Tab",
     "CmdCopyImage", "Copy Image",
@@ -133,7 +133,7 @@ export const commands = [
     "CmdHelpOpenManualOnWebsite", "Help: Manual On Website",
     "CmdHelpOpenKeyboardShortcuts", "Help: Keyboard Shortcuts",
     "CmdHelpVisitWebsite", "Help: SumatraPDF Website",
-    "CmdHelpAbout", "Help: About Sumatra PDF Plus",
+    "CmdHelpAbout", "Help: About SumatraPDF-Ray",
     "CmdMoveFrameFocus", "Move Frame Focus",
     "CmdFavoriteAdd", "Add Favorite",
     "CmdFavoriteDel", "Delete Favorite",
@@ -298,6 +298,7 @@ export const commands = [
     "CmdExportPageImages", "Export pages as images...",
     "CmdCapturePageRegion", "Capture Page Region",
     "CmdTocLocateCurrentChapter", "Locate Current Chapter",
+    "CmdAiSettings", "AI Settings...",
     "CmdNone", "Do nothing",
 ];
 

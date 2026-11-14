@@ -2,7 +2,8 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemDefinitionGroup>
     <Link>
-      <AdditionalDependencies>$(OutDir)sumatra_mermaid.lib;bcrypt.lib;ntdll.lib;userenv.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/PDBALTPATH:SumatraPDF-Ray.pdb %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalDependencies>$(OutDir)sumatra_mermaid.lib;bcrypt.lib;ntdll.lib;userenv.lib;ws2_32.lib;synchronization.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <Target Name="BuildMermaidStaticLibrary" BeforeTargets="PrepareForBuild">

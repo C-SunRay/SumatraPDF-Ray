@@ -963,9 +963,18 @@ static const int gSettingsReadAloudControls[] = {IDC_GROUP_RA_VOICE,
 static const int gSettingsOcrControls[] = {IDC_GROUP_OCR,      IDC_AUTO_OCR,         IDC_OCR_DESCRIPTION,
                                            IDC_OCR_AUTO_SAVE,  IDC_OCR_SAVE_WARNING, IDC_GROUP_SMART_TOC,
                                            IDC_TOC_MODE_LABEL, IDC_TOC_MODE,         IDC_TOC_MODE_DESCRIPTION};
-static const int gSettingsAiControls[] = {IDC_GROUP_ASK_AI,
-                                          IDC_ENABLE_ASK_AI,
-                                          IDC_AI_PROVIDER,
+static const int gSettingsAiControls[] = {IDC_AI_RENAME,
+                                          IDC_AI_VOLC_EXPAND,
+                                          IDC_AI_ADVANCED_EXPAND,
+                                          IDC_AI_CHAT_OVERRIDE,
+                                          IDC_AI_CHAT_STATUS,
+                                          IDC_AI_SERVICE_HINT,
+                                          IDC_DEEPSEEK_GROUP,
+                                          IDC_DEEPSEEK_THINKING,
+                                          IDC_DEEPSEEK_EFFORT_LABEL,
+                                          IDC_DEEPSEEK_EFFORT,
+                                          IDC_DEEPSEEK_SEARCH,
+                                          IDC_DEEPSEEK_HINT,
                                           IDC_GROUP_INLINE_TRANSLATE,
                                           IDC_ENABLE_INLINE_TRANSLATE,
                                           IDC_TRANSLATE_TARGET_LABEL,
@@ -988,8 +997,6 @@ static const int gSettingsAiControls[] = {IDC_GROUP_ASK_AI,
                                           IDC_AITOC_API_PROFILE,
                                           IDC_AITOC_API_ADD,
                                           IDC_AITOC_API_REMOVE,
-                                          IDC_AITOC_API_NAME_LABEL,
-                                          IDC_AITOC_API_NAME,
                                           IDC_AITOC_API_FETCH_MODELS,
                                           IDC_AITOC_API_CONCURRENCY_LABEL,
                                           IDC_AITOC_API_CONCURRENCY,
@@ -1105,15 +1112,14 @@ static void FitSettingsReadAloudLabels(HWND hDlg) {
 // Align AI page label/field columns after translation (Chinese labels are wider).
 static void FitSettingsAiLabels(HWND hDlg) {
     static const int labelIds[] = {
-        IDC_TRANSLATE_TARGET_LABEL,  IDC_TRANSLATE_VOLC_AK_LABEL, IDC_TRANSLATE_VOLC_SK_LABEL,
-        IDC_AITOC_API_PROFILE_LABEL, IDC_AITOC_API_NAME_LABEL,    IDC_AITOC_API_BASEURL_LABEL,
-        IDC_AITOC_API_KEY_LABEL,     IDC_AITOC_API_MODEL_LABEL,   IDC_AITOC_API_CONCURRENCY_LABEL,
-        IDC_AI_CHAT_PROFILE_LABEL,   IDC_AI_CHAT_MODEL_LABEL,
+        IDC_TRANSLATE_TARGET_LABEL,  IDC_TRANSLATE_VOLC_AK_LABEL,     IDC_TRANSLATE_VOLC_SK_LABEL,
+        IDC_AITOC_API_PROFILE_LABEL, IDC_AITOC_API_BASEURL_LABEL,     IDC_AITOC_API_KEY_LABEL,
+        IDC_AITOC_API_MODEL_LABEL,   IDC_AITOC_API_CONCURRENCY_LABEL, IDC_AI_CHAT_PROFILE_LABEL,
+        IDC_AI_CHAT_MODEL_LABEL,
     };
     // Fields that share the main value column.
     static const int fullFieldIds[] = {
-        IDC_TRANSLATE_TARGET,  IDC_TRANSLATE_VOLC_AK, IDC_AITOC_API_NAME,
-        IDC_AITOC_API_BASEURL, IDC_AITOC_API_KEY,     IDC_AI_CHAT_PROFILE,
+        IDC_TRANSLATE_TARGET, IDC_TRANSLATE_VOLC_AK, IDC_AITOC_API_BASEURL, IDC_AITOC_API_KEY, IDC_AI_CHAT_PROFILE,
     };
     // Fields that leave room for a right-side button.
     static const int midFieldIds[] = {IDC_TRANSLATE_VOLC_SK, IDC_AITOC_API_PROFILE, IDC_AITOC_API_MODEL,
@@ -1137,20 +1143,6 @@ static void FitSettingsAiLabels(HWND hDlg) {
         DrawTextW(hdc, s, -1, &rc, DT_CALCRECT | DT_SINGLELINE);
         need = std::max(need, (int)(rc.right - rc.left));
     }
-    // Keep the Web AI controls on one row, allowing for translated text widths.
-    HWND enable = GetDlgItem(hDlg, IDC_ENABLE_ASK_AI);
-    HWND provider = GetDlgItem(hDlg, IDC_AI_PROVIDER);
-    Rect enableRect = MapRectToWindow(WindowRect(enable), HWND_DESKTOP, hDlg);
-    Rect providerRect = MapRectToWindow(WindowRect(provider), HWND_DESKTOP, hDlg);
-    RECT textRect{};
-    DrawTextW(hdc, HwndGetTextWTemp(enable), -1, &textRect, DT_CALCRECT | DT_SINGLELINE);
-    int enableWidth = textRect.right - textRect.left + DpiScale(hDlg, 24);
-    int inlineGap = DpiScale(hDlg, 12);
-    int providerX = enableRect.x + enableWidth + inlineGap;
-    SetWindowPos(enable, nullptr, enableRect.x, enableRect.y, enableWidth, enableRect.dy,
-                 SWP_NOZORDER | SWP_NOACTIVATE);
-    SetWindowPos(provider, nullptr, providerX, providerRect.y, providerRect.Right() - providerX, DpiScale(hDlg, 300),
-                 SWP_NOZORDER | SWP_NOACTIVATE);
     if (oldFont) {
         SelectObject(hdc, oldFont);
     }
@@ -1298,9 +1290,10 @@ static void CompactSettingsPage(HWND hwnd) {
 static void WidenSettingsPage(HWND hwnd, int extraWidth) {
     // Keep label columns and compact numeric fields at their original widths.
     // Buttons beside a field follow the right edge; the field fills the space.
-    static const int rightIds[] = {IDC_TREE_FONT_SIZE_LABEL,   IDC_TREE_FONT_SIZE, IDC_DICTIONARY_BROWSE,
-                                   IDC_TRANSLATE_VOLC_TEST,    IDC_AITOC_API_ADD,  IDC_AITOC_API_REMOVE,
-                                   IDC_AITOC_API_FETCH_MODELS, IDC_AITOC_API_TEST, IDC_AI_CHAT_CHOOSE};
+    static const int rightIds[] = {
+        IDC_TREE_FONT_SIZE_LABEL, IDC_TREE_FONT_SIZE, IDC_DICTIONARY_BROWSE, IDC_AI_RENAME,
+        IDC_TRANSLATE_VOLC_TEST,  IDC_AITOC_API_ADD,  IDC_AITOC_API_REMOVE,  IDC_AITOC_API_FETCH_MODELS,
+        IDC_AITOC_API_TEST,       IDC_AI_CHAT_CHOOSE};
     static const int stretchIds[] = {IDC_DICTIONARY_PATH, IDC_TRANSLATE_VOLC_SK, IDC_AITOC_API_PROFILE,
                                      IDC_AITOC_API_MODEL, IDC_AI_CHAT_MODEL};
     int right = 0;
@@ -1505,6 +1498,8 @@ static void InitSettingsViewport(HWND hwnd) {
     LayoutSettingsViewport(hwnd, 0);
 }
 
+static void UpdateAiSettingsSections(HWND hDlg);
+
 static void ShowSettingsPage(HWND hDlg, int page) {
     struct PageControls {
         const int* ids;
@@ -1527,6 +1522,7 @@ static void ShowSettingsPage(HWND hDlg, int page) {
             ShowWindow(GetDlgItem(hDlg, id), show ? SW_SHOW : SW_HIDE);
         }
     }
+    UpdateAiSettingsSections(hDlg);
     LayoutSettingsViewport(hDlg, 0);
 }
 
@@ -1543,6 +1539,8 @@ struct AiTocSettingsState {
     unsigned fetchGeneration = 0;
     LONG token = 0;
     bool loading = false;
+    bool volcExpanded = false;
+    bool advancedExpanded = false;
     HWND fetchTip = nullptr;
     WCHAR* fetchTipText = nullptr;
 
@@ -1564,6 +1562,34 @@ struct AiTocSettingsState {
 
 static AiTocSettingsState* GetAiTocSettingsState(HWND hDlg) {
     return (AiTocSettingsState*)GetPropW(hDlg, kAiTocSettingsStateProp);
+}
+
+// Collapsing a section only changes visibility; its edit values stay intact.
+static void UpdateAiSettingsSections(HWND hDlg) {
+    auto* state = GetAiTocSettingsState(hDlg);
+    if (!state) return;
+    bool active = ListBox_GetCurSel(GetDlgItem(hDlg, IDC_SETTINGS_CATEGORY)) == kSettingsPageAi;
+    bool separate = IsDlgButtonChecked(hDlg, IDC_AI_CHAT_OVERRIDE) == BST_CHECKED;
+    bool volcConfigured = !str::IsEmptyOrWhiteSpace(HwndGetTextTemp(GetDlgItem(hDlg, IDC_TRANSLATE_VOLC_AK))) ||
+                          !str::IsEmptyOrWhiteSpace(HwndGetTextTemp(GetDlgItem(hDlg, IDC_TRANSLATE_VOLC_SK)));
+    HwndSetDlgItemText(hDlg, IDC_AI_VOLC_EXPAND,
+                       str::FormatTemp("%s %s%s", state->volcExpanded ? "-" : "+", _TRA("Volc translation (optional)"),
+                                       volcConfigured ? _TRA(" - configured") : ""));
+    HwndSetDlgItemText(hDlg, IDC_AI_ADVANCED_EXPAND,
+                       state->advancedExpanded ? _TRA("- Hide advanced settings") : _TRA("+ Show advanced settings"));
+    HwndSetDlgItemText(
+        hDlg, IDC_AI_CHAT_STATUS,
+        separate ? _TRA("Separate chat configuration is enabled.") : _TRA("Chat follows the AI service above."));
+    const int volcIds[] = {IDC_TRANSLATE_VOLC_AK_LABEL, IDC_TRANSLATE_VOLC_AK, IDC_TRANSLATE_VOLC_SK_LABEL,
+                           IDC_TRANSLATE_VOLC_SK, IDC_TRANSLATE_VOLC_TEST};
+    const int advancedIds[] = {IDC_AITOC_API_CONCURRENCY_LABEL, IDC_AITOC_API_CONCURRENCY, IDC_AI_CHAT_OVERRIDE,
+                               IDC_AI_VISION_HINT};
+    const int chatIds[] = {IDC_AI_CHAT_PROFILE_LABEL, IDC_AI_CHAT_PROFILE, IDC_AI_CHAT_MODEL_LABEL,
+                           IDC_AI_CHAT_MODEL,         IDC_AI_CHAT_CHOOSE,  IDC_AI_CHAT_HINT};
+    for (int id : volcIds) ShowWindow(GetDlgItem(hDlg, id), active && state->volcExpanded ? SW_SHOW : SW_HIDE);
+    for (int id : advancedIds) ShowWindow(GetDlgItem(hDlg, id), active && state->advancedExpanded ? SW_SHOW : SW_HIDE);
+    for (int id : chatIds)
+        ShowWindow(GetDlgItem(hDlg, id), active && state->advancedExpanded && separate ? SW_SHOW : SW_HIDE);
 }
 
 static void AiTocJsonString(StrBuilder& out, const char* s) {
@@ -1630,7 +1656,6 @@ static void AiTocSaveVisibleProfile(HWND hDlg) {
         return;
     }
     auto& p = state->profiles[state->current];
-    str::ReplaceWithCopy(&p.name, HwndGetTextTemp(GetDlgItem(hDlg, IDC_AITOC_API_NAME)));
     str::ReplaceWithCopy(&p.baseUrl, HwndGetTextTemp(GetDlgItem(hDlg, IDC_AITOC_API_BASEURL)));
     str::ReplaceWithCopy(&p.key, HwndGetTextTemp(GetDlgItem(hDlg, IDC_AITOC_API_KEY)));
     str::ReplaceWithCopy(&p.model, HwndGetTextTemp(GetDlgItem(hDlg, IDC_AITOC_API_MODEL)));
@@ -1668,7 +1693,6 @@ static void AiTocShowProfile(HWND hDlg) {
     }
     auto& p = state->profiles[state->current];
     state->loading = true;
-    HwndSetDlgItemText(hDlg, IDC_AITOC_API_NAME, p.name ? p.name : "");
     HwndSetDlgItemText(hDlg, IDC_AITOC_API_BASEURL, p.baseUrl ? p.baseUrl : "");
     HwndSetDlgItemText(hDlg, IDC_AITOC_API_KEY, p.key ? p.key : "");
     HwndSetDlgItemText(hDlg, IDC_AITOC_API_MODEL, p.model ? p.model : "");
@@ -1681,7 +1705,31 @@ static void AiTocShowProfile(HWND hDlg) {
     EnableWindow(GetDlgItem(hDlg, IDC_AI_CHAT_CHOOSE), TRUE);
 }
 
+static void DeepSeekOptionsFromDialog(HWND hDlg, AiTocApiConfig& cfg) {
+    cfg.deepSeekThinking = IsDlgButtonChecked(hDlg, IDC_DEEPSEEK_THINKING) == BST_CHECKED;
+    cfg.deepSeekWebSearch = IsDlgButtonChecked(hDlg, IDC_DEEPSEEK_SEARCH) == BST_CHECKED;
+    int effort = (int)SendDlgItemMessageW(hDlg, IDC_DEEPSEEK_EFFORT, CB_GETCURSEL, 0, 0);
+    cfg.deepSeekEffort = effort >= 0 && effort <= 2 ? effort : 1;
+}
+
 static void AiTocInitProfiles(HWND hDlg, GlobalPrefs* prefs) {
+    HwndSetDlgItemText(hDlg, IDC_DEEPSEEK_THINKING, _TRA("Enable thinking"));
+    HwndSetDlgItemText(hDlg, IDC_DEEPSEEK_EFFORT_LABEL, _TRA("Reasoning effort:"));
+    HwndSetDlgItemText(hDlg, IDC_DEEPSEEK_SEARCH, _TRA("Enable web search"));
+    HwndSetDlgItemText(hDlg, IDC_DEEPSEEK_HINT,
+                       _TRA("Applies to all DeepSeek API requests. Both switches are off by default."));
+    const char* efforts[] = {_TRA("Low"), _TRA("High"), _TRA("Maximum")};
+    for (const char* effort : efforts)
+        SendDlgItemMessageW(hDlg, IDC_DEEPSEEK_EFFORT, CB_ADDSTRING, 0, (LPARAM)ToWStrTemp(effort));
+    CheckDlgButton(
+        hDlg, IDC_AI_CHAT_OVERRIDE,
+        (prefs->aiChatApiProfile >= 0 || !str::IsEmptyOrWhiteSpace(prefs->aiChatModel)) ? BST_CHECKED : BST_UNCHECKED);
+    AiTocApiConfig cfg;
+    AiTocApiApplyDeepSeekPrefs(cfg, prefs);
+    CheckDlgButton(hDlg, IDC_DEEPSEEK_THINKING, cfg.deepSeekThinking ? BST_CHECKED : BST_UNCHECKED);
+    CheckDlgButton(hDlg, IDC_DEEPSEEK_SEARCH, cfg.deepSeekWebSearch ? BST_CHECKED : BST_UNCHECKED);
+    SendDlgItemMessageW(hDlg, IDC_DEEPSEEK_EFFORT, CB_SETCURSEL, cfg.deepSeekEffort, 0);
+    EnableWindow(GetDlgItem(hDlg, IDC_DEEPSEEK_EFFORT), cfg.deepSeekThinking);
     auto* state = new AiTocSettingsState();
     state->token = InterlockedIncrement(&gAiTocSettingsToken);
     state->current = AiApiLoadProfiles(prefs, state->profiles);
@@ -1695,13 +1743,20 @@ static void AiTocInitProfiles(HWND hDlg, GlobalPrefs* prefs) {
 }
 
 static void AiTocCommitProfiles(HWND hDlg, GlobalPrefs* prefs) {
+    AiTocApiConfig cfg;
+    DeepSeekOptionsFromDialog(hDlg, cfg);
+    prefs->deepSeekThinking = cfg.deepSeekThinking;
+    prefs->deepSeekWebSearch = cfg.deepSeekWebSearch;
+    const char* efforts[] = {"low", "high", "max"};
+    str::ReplaceWithCopy(&prefs->deepSeekReasoningEffort, efforts[cfg.deepSeekEffort]);
     auto* state = GetAiTocSettingsState(hDlg);
     if (!state) {
         return;
     }
     AiTocSaveVisibleProfile(hDlg);
-    prefs->aiChatApiProfile = state->chatProfile;
-    str::ReplaceWithCopy(&prefs->aiChatModel, HwndGetTextTemp(GetDlgItem(hDlg, IDC_AI_CHAT_MODEL)));
+    bool separate = IsDlgButtonChecked(hDlg, IDC_AI_CHAT_OVERRIDE) == BST_CHECKED;
+    prefs->aiChatApiProfile = separate ? state->chatProfile : -1;
+    str::ReplaceWithCopy(&prefs->aiChatModel, separate ? HwndGetTextTemp(GetDlgItem(hDlg, IDC_AI_CHAT_MODEL)) : "");
     auto& active = state->profiles[state->current];
     str::ReplaceWithCopy(&prefs->aiTocApiBaseUrl, active.baseUrl ? active.baseUrl : "");
     str::ReplaceWithCopy(&prefs->aiTocApiKey, active.key ? active.key : "");
@@ -1911,6 +1966,7 @@ static void AiTocFetchModelsWorker(AiTocFetchModelsReq* req) {
 }
 
 struct AiTocApiTestReq {
+    AiTocApiConfig options;
     HWND hwnd = nullptr;
     LONG token = 0;
     char* baseUrl = nullptr;
@@ -1938,8 +1994,8 @@ static void AiTocApiTestFinished(AiTocApiTestReq* req) {
 static void AiTocApiTestWorker(AiTocApiTestReq* req) {
     char* textMsg = nullptr;
     char* visionMsg = nullptr;
-    bool textOk = AiTocApiTestConnection(req->baseUrl, req->key, req->model, &textMsg);
-    bool visionOk = AiTocApiTestConnection(req->baseUrl, req->key, req->model, &visionMsg, true);
+    bool textOk = AiTocApiTestConnection(req->baseUrl, req->key, req->model, &textMsg, false, &req->options);
+    bool visionOk = AiTocApiTestConnection(req->baseUrl, req->key, req->model, &visionMsg, true, &req->options);
     req->ok = textOk && visionOk;
     req->msg = str::Format("%s: %s\n%s: %s%s%s%s%s", _TRA("Text generation"), textOk ? _TRA("Passed") : _TRA("Failed"),
                            _TRA("Image recognition"), visionOk ? _TRA("Passed") : _TRA("Not verified"),
@@ -2005,9 +2061,6 @@ static void UpdateSettingsDependencies(HWND hDlg) {
     EnableWindow(GetDlgItem(hDlg, IDC_DICTIONARY_PATH_LABEL), wordLookup);
     EnableWindow(GetDlgItem(hDlg, IDC_DICTIONARY_PATH), wordLookup);
     EnableWindow(GetDlgItem(hDlg, IDC_DICTIONARY_BROWSE), wordLookup);
-
-    bool askAi = IsDlgButtonChecked(hDlg, IDC_ENABLE_ASK_AI) == BST_CHECKED;
-    EnableWindow(GetDlgItem(hDlg, IDC_AI_PROVIDER), askAi);
 
     bool inlineTr = IsDlgButtonChecked(hDlg, IDC_ENABLE_INLINE_TRANSLATE) == BST_CHECKED;
     EnableWindow(GetDlgItem(hDlg, IDC_TRANSLATE_TARGET_LABEL), inlineTr);
@@ -2376,7 +2429,6 @@ static INT_PTR CALLBACK Dialog_Settings_Proc(HWND hDlg, UINT msg, WPARAM wp, LPA
                            prefs->enableDoubleClickWordLookup ? BST_CHECKED : BST_UNCHECKED);
             CheckDlgButton(hDlg, IDC_AUTO_OCR, prefs->autoOcrScanPages ? BST_CHECKED : BST_UNCHECKED);
             CheckDlgButton(hDlg, IDC_OCR_AUTO_SAVE, prefs->ocrAutoSave ? BST_CHECKED : BST_UNCHECKED);
-            CheckDlgButton(hDlg, IDC_ENABLE_ASK_AI, prefs->enableAskAI ? BST_CHECKED : BST_UNCHECKED);
             CheckDlgButton(hDlg, IDC_ENABLE_INLINE_TRANSLATE,
                            prefs->enableInlineTranslate ? BST_CHECKED : BST_UNCHECKED);
             HwndSetDlgItemText(hDlg, IDC_TRANSLATE_VOLC_AK, prefs->translateVolcAccessKey);
@@ -2526,15 +2578,6 @@ static INT_PTR CALLBACK Dialog_Settings_Proc(HWND hDlg, UINT msg, WPARAM wp, LPA
                                                                                   : 1;
             CbSetCurrentSelection(tocMode, tocSelection);
 
-            HWND aiProvider = GetDlgItem(hDlg, IDC_AI_PROVIDER);
-            CbAddString(aiProvider, _TRA("Doubao"));
-            CbAddString(aiProvider, _TRA("DeepSeek"));
-            CbAddString(aiProvider, _TRA("ChatGPT"));
-            int providerSelection = str::EqI(prefs->aiChatProvider, "deepseek")  ? 1
-                                    : str::EqI(prefs->aiChatProvider, "chatgpt") ? 2
-                                                                                 : 0;
-            CbSetCurrentSelection(aiProvider, providerSelection);
-
             HWND translateTarget = GetDlgItem(hDlg, IDC_TRANSLATE_TARGET);
             int nTargets = 0;
             const TranslateTargetOption* targets = GetTranslateTargetOptions(&nTargets);
@@ -2543,7 +2586,7 @@ static INT_PTR CALLBACK Dialog_Settings_Proc(HWND hDlg, UINT msg, WPARAM wp, LPA
             }
             CbSetCurrentSelection(translateTarget, FindTranslateTargetOptionIndex(prefs->translateTargetMode));
 
-            HwndSetText(hDlg, _TRA("SumatraPDF Options"));
+            HwndSetText(hDlg, _TRA("SumatraPDF-Ray Options"));
             HwndSetDlgItemText(hDlg, IDC_GROUP_RA_VOICE, _TRA("Voice"));
             HwndSetDlgItemText(hDlg, IDC_RA_VOICE_MODE_LABEL, _TRA("&Voice:"));
             HwndSetDlgItemText(hDlg, IDC_RA_VOICE_ZH_LABEL, _TRA("&Chinese voice:"));
@@ -2603,27 +2646,30 @@ static INT_PTR CALLBACK Dialog_Settings_Proc(HWND hDlg, UINT msg, WPARAM wp, LPA
             HwndSetDlgItemText(hDlg, IDC_TOC_MODE_LABEL, _TRA("Extraction &detail:"));
             HwndSetDlgItemText(hDlg, IDC_TOC_MODE_DESCRIPTION,
                                _TRA("Balanced accuracy and completeness is recommended."));
-            HwndSetDlgItemText(hDlg, IDC_GROUP_ASK_AI, _TRA("Web AI"));
-            HwndSetDlgItemText(hDlg, IDC_ENABLE_ASK_AI, _TRA("&Enable Web AI"));
-            HwndSetDlgItemText(hDlg, IDC_GROUP_INLINE_TRANSLATE, _TRA("Translate"));
+            HwndSetDlgItemText(hDlg, IDC_GROUP_INLINE_TRANSLATE, _TRA("Inline translation"));
             HwndSetDlgItemText(hDlg, IDC_ENABLE_INLINE_TRANSLATE, _TRA("Enable &inline translate"));
             HwndSetDlgItemText(hDlg, IDC_TRANSLATE_TARGET_LABEL, _TRA("Target &language:"));
             HwndSetDlgItemText(hDlg, IDC_TRANSLATE_VOLC_AK_LABEL, _TRA("Volc &Access Key:"));
             HwndSetDlgItemText(hDlg, IDC_TRANSLATE_VOLC_SK_LABEL, _TRA("Volc &Secret Key:"));
-            HwndSetDlgItemText(hDlg, IDC_TRANSLATE_HINT,
-                               _TRA("Without Volc keys, or if Volc fails, translation uses the general AI API below."));
-            HwndSetDlgItemText(hDlg, IDC_GROUP_AITOC_API, _TRA("General AI API (TOC, translation fallback)"));
-            HwndSetDlgItemText(hDlg, IDC_AITOC_API_PROFILE_LABEL, _TRA("&Platform:"));
+            HwndSetDlgItemText(
+                hDlg, IDC_TRANSLATE_HINT,
+                _TRA("Uses the AI service above. Optional Volc translation takes priority when configured."));
+            HwndSetDlgItemText(hDlg, IDC_GROUP_AITOC_API, _TRA("AI service"));
+            HwndSetDlgItemText(hDlg, IDC_AITOC_API_PROFILE_LABEL, _TRA("Configuration:"));
             HwndSetDlgItemText(hDlg, IDC_AITOC_API_ADD, _TRA("&Add"));
             HwndSetDlgItemText(hDlg, IDC_AITOC_API_REMOVE, _TRA("&Remove"));
-            HwndSetDlgItemText(hDlg, IDC_AITOC_API_NAME_LABEL, _TRA("&Name:"));
+            HwndSetDlgItemText(hDlg, IDC_AI_RENAME, _TRA("Rename..."));
+            HwndSetDlgItemText(hDlg, IDC_AI_SERVICE_HINT,
+                               _TRA("Shared by chat, translation and contents recognition."));
+            HwndSetDlgItemText(hDlg, IDC_DEEPSEEK_GROUP, _TRA("DeepSeek request options"));
+            HwndSetDlgItemText(hDlg, IDC_AI_CHAT_OVERRIDE, _TRA("Use a separate service or model for chat"));
             HwndSetDlgItemText(hDlg, IDC_AITOC_API_BASEURL_LABEL, _TRA("API &base URL:"));
             HwndSetDlgItemText(hDlg, IDC_AITOC_API_KEY_LABEL, _TRA("API &key:"));
             HwndSetDlgItemText(hDlg, IDC_AITOC_API_MODEL_LABEL, _TRA("&Model:"));
             HwndSetDlgItemText(hDlg, IDC_AITOC_API_FETCH_MODELS, _TRA("&Choose..."));
             HwndSetDlgItemText(hDlg, IDC_AITOC_API_CONCURRENCY_LABEL, _TRA("&Parallel (1-8):"));
-            HwndSetDlgItemText(hDlg, IDC_AITOC_API_TEST, _TRA("&Test"));
-            HwndSetDlgItemText(hDlg, IDC_AI_CHAT_GROUP, _TRA("Default AI conversation"));
+            HwndSetDlgItemText(hDlg, IDC_AITOC_API_TEST, _TRA("Test connection"));
+            HwndSetDlgItemText(hDlg, IDC_AI_CHAT_GROUP, _TRA("Advanced settings"));
             HwndSetDlgItemText(hDlg, IDC_AI_CHAT_PROFILE_LABEL, _TRA("Chat API:"));
             HwndSetDlgItemText(hDlg, IDC_AI_CHAT_MODEL_LABEL, _TRA("Chat model:"));
             HwndSetDlgItemText(hDlg, IDC_AI_CHAT_CHOOSE, _TRA("&Choose..."));
@@ -2997,7 +3043,6 @@ static INT_PTR CALLBACK Dialog_Settings_Proc(HWND hDlg, UINT msg, WPARAM wp, LPA
                         (BST_CHECKED == IsDlgButtonChecked(hDlg, IDC_ENABLE_WORD_LOOKUP));
                     prefs->autoOcrScanPages = (BST_CHECKED == IsDlgButtonChecked(hDlg, IDC_AUTO_OCR));
                     prefs->ocrAutoSave = (BST_CHECKED == IsDlgButtonChecked(hDlg, IDC_OCR_AUTO_SAVE));
-                    prefs->enableAskAI = (BST_CHECKED == IsDlgButtonChecked(hDlg, IDC_ENABLE_ASK_AI));
                     prefs->enableInlineTranslate =
                         (BST_CHECKED == IsDlgButtonChecked(hDlg, IDC_ENABLE_INLINE_TRANSLATE));
                     {
@@ -3047,9 +3092,6 @@ static INT_PTR CALLBACK Dialog_Settings_Proc(HWND hDlg, UINT msg, WPARAM wp, LPA
                     int tocModeIdx = (int)SendDlgItemMessage(hDlg, IDC_TOC_MODE, CB_GETCURSEL, 0, 0);
                     const char* tocMode = tocModeIdx == 0 ? "conservative" : tocModeIdx == 2 ? "detailed" : "standard";
                     str::ReplaceWithCopy(&prefs->extractPdfTocMode, tocMode);
-                    int providerIdx = (int)SendDlgItemMessage(hDlg, IDC_AI_PROVIDER, CB_GETCURSEL, 0, 0);
-                    const char* provider = providerIdx == 1 ? "deepseek" : providerIdx == 2 ? "chatgpt" : "doubao";
-                    str::ReplaceWithCopy(&prefs->aiChatProvider, provider);
                     int treeFontIdx = (int)SendDlgItemMessage(hDlg, IDC_TREE_FONT_NAME, CB_GETCURSEL, 0, 0);
                     if (treeFontIdx <= 0) {
                         str::ReplaceWithCopy(&prefs->treeFontName, "automatic");
@@ -3091,7 +3133,6 @@ static INT_PTR CALLBACK Dialog_Settings_Proc(HWND hDlg, UINT msg, WPARAM wp, LPA
                 case IDC_SHOW_TOOLBAR:
                 case IDC_RESTORE_SESSION:
                 case IDC_ENABLE_WORD_LOOKUP:
-                case IDC_ENABLE_ASK_AI:
                 case IDC_ENABLE_INLINE_TRANSLATE:
                     UpdateSettingsDependencies(hDlg);
                     return TRUE;
@@ -3124,7 +3165,7 @@ static INT_PTR CALLBACK Dialog_Settings_Proc(HWND hDlg, UINT msg, WPARAM wp, LPA
                     state->profiles.Append(p);
                     state->current = state->profiles.Size() - 1;
                     AiTocShowProfile(hDlg);
-                    SetFocus(GetDlgItem(hDlg, IDC_AITOC_API_NAME));
+                    SendMessageW(hDlg, WM_COMMAND, IDC_AI_RENAME, 0);
                     return TRUE;
                 }
 
@@ -3145,12 +3186,32 @@ static INT_PTR CALLBACK Dialog_Settings_Proc(HWND hDlg, UINT msg, WPARAM wp, LPA
                     return TRUE;
                 }
 
-                case IDC_AITOC_API_NAME:
-                    if (HIWORD(wp) == EN_KILLFOCUS) {
-                        AiTocSaveVisibleProfile(hDlg);
-                        AiTocRefreshProfileSelector(hDlg);
+                case IDC_AI_RENAME: {
+                    auto* state = GetAiTocSettingsState(hDlg);
+                    if (!state) return TRUE;
+                    AiTocSaveVisibleProfile(hDlg);
+                    AutoFreeStr name(str::Dup(state->profiles[state->current].name));
+                    if (Dialog_PdfTocTitle(hDlg, _TRA("Rename AI configuration"), _TRA("&Name:"), name, nullptr)) {
+                        str::TrimWSInPlace(name.Get(), str::TrimOpt::Both);
+                        if (!str::IsEmpty(name.Get())) {
+                            str::ReplaceWithCopy(&state->profiles[state->current].name, name.Get());
+                            AiTocRefreshProfileSelector(hDlg);
+                        }
                     }
                     return TRUE;
+                }
+                case IDC_AI_VOLC_EXPAND:
+                case IDC_AI_ADVANCED_EXPAND:
+                case IDC_AI_CHAT_OVERRIDE: {
+                    auto* state = GetAiTocSettingsState(hDlg);
+                    if (!state) return TRUE;
+                    if (LOWORD(wp) == IDC_AI_VOLC_EXPAND) state->volcExpanded = !state->volcExpanded;
+                    if (LOWORD(wp) == IDC_AI_ADVANCED_EXPAND) state->advancedExpanded = !state->advancedExpanded;
+                    UpdateAiSettingsSections(hDlg);
+                    LayoutSettingsViewport(hDlg, gSettingsScrollPos);
+                    EnsureSettingsFocusVisible(hDlg);
+                    return TRUE;
+                }
 
                 case IDC_AITOC_API_BASEURL:
                 case IDC_AITOC_API_KEY:
@@ -3226,8 +3287,13 @@ static INT_PTR CALLBACK Dialog_Settings_Proc(HWND hDlg, UINT msg, WPARAM wp, LPA
                     return TRUE;
                 }
 
+                case IDC_DEEPSEEK_THINKING:
+                    EnableWindow(GetDlgItem(hDlg, IDC_DEEPSEEK_EFFORT),
+                                 IsDlgButtonChecked(hDlg, IDC_DEEPSEEK_THINKING) == BST_CHECKED);
+                    return TRUE;
                 case IDC_AITOC_API_TEST: {
                     auto* req = new AiTocApiTestReq();
+                    DeepSeekOptionsFromDialog(hDlg, req->options);
                     req->hwnd = hDlg;
                     auto* state = GetAiTocSettingsState(hDlg);
                     req->token = state ? state->token : 0;

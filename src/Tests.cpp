@@ -1121,7 +1121,12 @@ static bool TestOcrImageLinks(const Flags& flags, const char* reportPath) {
     return passed;
 }
 
+bool TestDeepSeekApi(const char* reportPath);
+
 void TestRenderPage(const Flags& i) {
+    if (const char* report = getenv("SUMATRA_TEST_DEEPSEEK")) {
+        ExitProcess(TestDeepSeekApi(report) ? 0 : 1);
+    }
     if (const char* report = getenv("SUMATRA_TEST_OCR_IMAGE_LINKS")) {
         ExitProcess(TestOcrImageLinks(i, report) ? 0 : 1);
     }

@@ -24,6 +24,8 @@ enum class Type {
 struct ValueVisitor {
     // return false to stop parsing
     virtual bool Visit(const char* path, const char* value, Type type) = 0;
+    // Called after a complete object/array; raw is borrowed and not NUL-terminated.
+    virtual bool VisitContainer(const char* path, const char* raw, size_t len) { return true; }
     virtual ~ValueVisitor() = default;
 };
 

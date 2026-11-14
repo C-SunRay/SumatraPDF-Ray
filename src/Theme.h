@@ -67,6 +67,8 @@ int ThemeEpoch();
 bool ThemeUsesBlackChrome();
 bool ThemeUsesOriginalPageColors();
 bool ThemeUsesEyeCareChrome();
+COLORREF ThemeEyeCarePageBackgroundColor();
+TempStr ThemeLightPaletteCssTemp(const char* css);
 bool IsCurrentThemeDefault();
 void UpdateWindowCaptionTheme(HWND hwnd);
 COLORREF AccentColor(COLORREF col, int light, int dark = 0);

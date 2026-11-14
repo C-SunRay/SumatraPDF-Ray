@@ -42,6 +42,14 @@ bool ThemeUsesEyeCareChrome() {
     return false;
 }
 
+COLORREF ThemeEyeCarePageBackgroundColor() {
+    return WIN_COL_WHITE;
+}
+
+TempStr ThemeLightPaletteCssTemp(const char* css) {
+    return str::DupTemp(css);
+}
+
 bool ThemeUsesOriginalPageColors() {
     return false;
 }

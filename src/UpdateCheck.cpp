@@ -45,11 +45,11 @@ static const char* kNotifUpdateCheckInProgress = "notifUpdateCheckInProgress";
 // We fetch both and use whichever reports the highest Latest version.
 
 // clang-format off
-constexpr const char* kUpdateInfoURL = "https://raw.githubusercontent.com/dengxibo/sumatrapdf-plus/main/update-check.txt";
-constexpr const char* kUpdateInfoURL2 = "https://cdn.jsdelivr.net/gh/dengxibo/sumatrapdf-plus@main/update-check.txt";
+constexpr const char* kUpdateInfoURL = "https://raw.githubusercontent.com/C-SunRay/SumatraPDF-Ray/ray/update-check.txt";
+constexpr const char* kUpdateInfoURL2 = "https://cdn.jsdelivr.net/gh/C-SunRay/SumatraPDF-Ray@ray/update-check.txt";
 
 #ifndef kWebisteDownloadPageURL
-#define kWebisteDownloadPageURL "https://github.com/dengxibo/sumatrapdf-plus/releases/latest"
+#define kWebisteDownloadPageURL "https://github.com/C-SunRay/SumatraPDF-Ray/releases/latest"
 #endif
 // clang-format on
 
@@ -555,7 +555,7 @@ static HRESULT CALLBACK TaskDialogHyperlinkCallback(HWND hwnd, UINT msg, WPARAM 
     return S_OK;
 }
 
-constexpr const char* kExpectedDlHost = "https://github.com/dengxibo/sumatrapdf-plus/";
+constexpr const char* kExpectedDlHost = "https://github.com/C-SunRay/SumatraPDF-Ray/";
 
 static void NotifySuspiciousUpdate(HWND hwndParent, const char* dlURL) {
     logf("NotifySuspiciousUpdate: suspicious download url '%s'\n", dlURL);

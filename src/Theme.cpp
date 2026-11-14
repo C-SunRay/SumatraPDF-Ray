@@ -35,6 +35,7 @@ bool UseDarkModeLib() {
 preserve those translations:
 _TRN("Set theme 'Light-Warm'")
 _TRN("Set theme 'Light-White'")
+_TRN("Set theme 'Light-Green'")
 _TRN("Follow system theme")
 _TRN("Set theme 'Dark-Dracula'")
 _TRN("Set theme 'Dark-Black'")
@@ -52,6 +53,8 @@ static const char* SetThemeMenuLabel(int themeIdx) {
             return _TRA("Set theme 'Dark-Black'");
         case 4:
             return _TRA("Follow system theme");
+        case 5:
+            return _TRA("Set theme 'Light-Green'");
         default:
             return _TRA("Set theme 'Light-Warm'");
     }
@@ -59,6 +62,7 @@ static const char* SetThemeMenuLabel(int themeIdx) {
 
 constexpr const char* kThemeLightWarm = "Light-Warm";
 constexpr const char* kThemeLightWhite = "Light-White";
+constexpr const char* kThemeLightGreen = "Light-Green";
 constexpr const char* kThemeDarkDracula = "Dark-Dracula";
 constexpr const char* kThemeDarkBlack = "Dark-Black";
 static constexpr int kThemeIdxLightWarm = 0;
@@ -66,6 +70,7 @@ static constexpr int kThemeIdxLightWhite = 1;
 static constexpr int kThemeIdxDarkDracula = 2;
 static constexpr int kThemeIdxDarkBlack = 3;
 static constexpr int kThemeIdxSystem = 4;
+static constexpr int kThemeIdxLightGreen = 5;
 
 constexpr COLORREF kColBlack = 0x000000;
 constexpr COLORREF kColWhite = 0xFFFFFF;
@@ -74,6 +79,10 @@ constexpr COLORREF kRedColor = RgbToCOLORREF(0xff0000);
 constexpr COLORREF kColEyeCareWindowBg = RgbToCOLORREF(0xebe6da);
 constexpr COLORREF kColEyeCareControlBg = RgbToCOLORREF(0xf5f1e8);
 constexpr COLORREF kColEyeCarePageBg = RgbToCOLORREF(0xf7f3e8);
+// Muted sage paper sits slightly darker than the surrounding reading canvas.
+// Keep application chrome neutral so the green is concentrated on the document.
+constexpr COLORREF kColGreenPageBg = RgbToCOLORREF(0xd0dfc2);
+constexpr COLORREF kColGreenCanvasBg = RgbToCOLORREF(0xd5e3c7);
 constexpr COLORREF kColEyeCareText = RgbToCOLORREF(0x333333);
 constexpr COLORREF kColReadingText = RgbToCOLORREF(0xe6e1d8);
 
@@ -116,6 +125,14 @@ static const char* themesTxt = R"(Themes [
         BackgroundColor = #ebe6da
         ControlBackgroundColor = #f5f1e8
         LinkColor = #0020a0
+        ColorizeControls = false
+    ]
+    [
+        Name = Light-Green
+        TextColor = #333333
+        BackgroundColor = #e8eae7
+        ControlBackgroundColor = #f2f3f1
+        LinkColor = #245b45
         ColorizeControls = false
     ]
 ]
@@ -185,6 +202,9 @@ static int GetPreferredDarkThemeIndex() {
 }
 
 static int LightThemeIndexFromPrefs() {
+    if (gGlobalPrefs && str::EqI(gGlobalPrefs->lastLightTheme, kThemeLightGreen)) {
+        return kThemeIdxLightGreen;
+    }
     if (gGlobalPrefs &&
         (str::EqI(gGlobalPrefs->lastLightTheme, kThemeLightWhite) ||
          str::EqI(gGlobalPrefs->lastLightTheme, "Original") || str::EqI(gGlobalPrefs->lastLightTheme, "Light-White"))) {
@@ -194,10 +214,14 @@ static int LightThemeIndexFromPrefs() {
 }
 
 static void UpdateLastLightThemePref(int themeIdx) {
-    if (!gGlobalPrefs || (themeIdx != kThemeIdxLightWarm && themeIdx != kThemeIdxLightWhite)) {
+    if (!gGlobalPrefs ||
+        (themeIdx != kThemeIdxLightWarm && themeIdx != kThemeIdxLightWhite && themeIdx != kThemeIdxLightGreen)) {
         return;
     }
     const char* name = themeIdx == kThemeIdxLightWhite ? kThemeLightWhite : kThemeLightWarm;
+    if (themeIdx == kThemeIdxLightGreen) {
+        name = kThemeLightGreen;
+    }
     if (!str::EqI(gGlobalPrefs->lastLightTheme, name)) {
         str::ReplaceWithCopy(&gGlobalPrefs->lastLightTheme, name);
     }
@@ -247,6 +271,23 @@ bool ThemeUsesOriginalPageColors() {
 
 bool ThemeUsesEyeCareChrome() {
     return !ThemeUsesDarkChrome() && !ThemeUsesOriginalPageColors();
+}
+
+COLORREF ThemeEyeCarePageBackgroundColor() {
+    return GetResolvedThemeIndex() == kThemeIdxLightGreen ? kColGreenPageBg : kColEyeCarePageBg;
+}
+
+// Adapt only our injected reading CSS; publisher styles and layout stay intact.
+TempStr ThemeLightPaletteCssTemp(const char* css) {
+    if (!css || GetResolvedThemeIndex() != kThemeIdxLightGreen) {
+        return str::DupTemp(css);
+    }
+    TempStr result = str::ReplaceTemp(css, "#f7f3e8", "#d0dfc2");
+    result = str::ReplaceTemp(result, "#ebe3d5", "#c7d6ba");
+    result = str::ReplaceTemp(result, "#e0d8ca", "#bcccae");
+    result = str::ReplaceTemp(result, "#3f3a34", "#304535");
+    result = str::ReplaceTemp(result, "#68625a", "#536b59");
+    return str::ReplaceTemp(result, "#315f9c", "#245b45");
 }
 
 void UpdateWindowCaptionTheme(HWND hwnd) {
@@ -473,6 +514,9 @@ static int GetThemeByName(const char* name) {
     if (str::EqI(name, kThemeLightWhite) || str::EqI(name, "Original")) {
         return kThemeIdxLightWhite;
     }
+    if (str::EqI(name, kThemeLightGreen) || str::EqI(name, "Green")) {
+        return kThemeIdxLightGreen;
+    }
     if (str::EqI(name, "System")) {
         return kThemeIdxSystem;
     }
@@ -535,7 +579,8 @@ void SetCurrentThemeFromSettings() {
     if (gCurrThemeIndex == kThemeIdxDarkDracula || gCurrThemeIndex == kThemeIdxDarkBlack) {
         UpdateLastDarkThemePref(gCurrThemeIndex);
     }
-    if (gCurrThemeIndex == kThemeIdxLightWarm || gCurrThemeIndex == kThemeIdxLightWhite) {
+    if (gCurrThemeIndex == kThemeIdxLightWarm || gCurrThemeIndex == kThemeIdxLightWhite ||
+        gCurrThemeIndex == kThemeIdxLightGreen) {
         UpdateLastLightThemePref(gCurrThemeIndex);
     }
     ParsedColor* bgParsed = GetPrefsColor(gGlobalPrefs->mainWindowBackground);
@@ -564,9 +609,14 @@ COLORREF AccentColor(COLORREF col, int light, int dark) {
 // canvas/window background color around the document pages
 // not affected by FixedPageUI.TextColor/BackgroundColor (those affect page rendering)
 COLORREF ThemeDocumentColors(COLORREF& bg) {
+    COLORREF canvasBg = ThemeMainWindowBackgroundColor();
+    if (GetResolvedThemeIndex() == kThemeIdxLightGreen &&
+        IsDefaultMainWinColor(GetPrefsColor(gGlobalPrefs->mainWindowBackground))) {
+        canvasBg = kColGreenCanvasBg;
+    }
     PdfDocumentColorMode docMode = GetPdfDocumentColorMode();
     if (docMode == PdfDocumentColorMode::Light) {
-        bg = ThemeMainWindowBackgroundColor();
+        bg = canvasBg;
         if (ThemeUsesDarkChrome()) {
             // Dark-Black: subtle near-black workspace (#0D0D0D) matching the
             // ChatGPT-style dark UI; Dracula keeps AccentColor(bg, 8) which
@@ -580,7 +630,7 @@ COLORREF ThemeDocumentColors(COLORREF& bg) {
         return ThemePageRenderColors(bg, true);
     }
 
-    bg = ThemeMainWindowBackgroundColor();
+    bg = canvasBg;
     if (docMode == PdfDocumentColorMode::Black) {
         return ThemePageRenderColors(bg, true);
     }
@@ -629,7 +679,7 @@ COLORREF ThemePageRenderColors(COLORREF& bg, bool respectPdfDocColorMode) {
         if (allowEyeCare && (!respectPdfDocColorMode || docMode == PdfDocumentColorMode::Auto ||
                              docMode == PdfDocumentColorMode::Black)) {
             text = kColEyeCareText;
-            bg = kColEyeCarePageBg;
+            bg = ThemeEyeCarePageBackgroundColor();
         }
         return text;
     }
@@ -644,7 +694,7 @@ COLORREF ThemePageRenderColors(COLORREF& bg, bool respectPdfDocColorMode) {
     // default colors
     if (!ThemeUsesDarkChrome()) {
         text = kColEyeCareText;
-        bg = kColEyeCarePageBg;
+        bg = ThemeEyeCarePageBackgroundColor();
         return text;
     }
 

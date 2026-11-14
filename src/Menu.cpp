@@ -1059,6 +1059,7 @@ UINT_PTR removeIfNoFullscreenPerms[] = {
 };
 
 UINT_PTR removeIfNoPrefsPerms[] = {
+    CmdAiSettings,
     CmdOptions,
     CmdAdvancedOptions,
     CmdPinSelectedDocument,
@@ -1331,10 +1332,18 @@ static void AppendCommandsToMenu(HMENU m, const Vec<CustomCommand*>& cmds, bool 
     }
 }
 
-static void AppendThemesToMenu(HMENU m) {
+void AppendThemesToMenu(HMENU m) {
     Vec<CustomCommand*> cmds;
     GetCommandsWithOrigId(cmds, CmdSetTheme);
-    AppendCommandsToMenu(m, cmds, true);
+    // Keep follow-system last without changing theme IDs or saved theme indexes.
+    Vec<CustomCommand*> ordered;
+    for (CustomCommand* cmd : cmds) {
+        if (!str::EqI(GetCommandStringArg(cmd, kCmdArgTheme, nullptr), "System")) ordered.Append(cmd);
+    }
+    for (CustomCommand* cmd : cmds) {
+        if (str::EqI(GetCommandStringArg(cmd, kCmdArgTheme, nullptr), "System")) ordered.Append(cmd);
+    }
+    AppendCommandsToMenu(m, ordered, true);
     // The native menubar refreshes state from WM_INITMENUPOPUP, but the
     // titlebar/rebar popup can display these freshly built submenus without
     // going through that window path. Initialize the radio state here so both

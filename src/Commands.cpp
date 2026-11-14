@@ -308,6 +308,7 @@ static SeqStrings gCommandNames =
     "CmdExportPageImages\0"
     "CmdCapturePageRegion\0"
     "CmdTocLocateCurrentChapter\0"
+    "CmdAiSettings\0"
     "CmdNone\0"
     "\0";
 
@@ -606,6 +607,7 @@ static i32 gCommandIds[] = {
     CmdExportPageImages,
     CmdCapturePageRegion,
     CmdTocLocateCurrentChapter,
+    CmdAiSettings,
     CmdNone,
 };
 
@@ -653,7 +655,7 @@ SeqStrings gCommandDescriptions =
     "Search Selection with Wikipedia\0"
     "Search Selection with Google Scholar\0"
     "Select All\0"
-    "Open New Sumatra PDF Plus Window\0"
+    "Open New SumatraPDF-Ray Window\0"
     "Open Current Document In New Window\0"
     "Open Current Document In New Tab\0"
     "Copy Image\0"
@@ -740,7 +742,7 @@ SeqStrings gCommandDescriptions =
     "Help: Manual On Website\0"
     "Help: Keyboard Shortcuts\0"
     "Help: SumatraPDF Website\0"
-    "Help: About Sumatra PDF Plus\0"
+    "Help: About SumatraPDF-Ray\0"
     "Move Frame Focus\0"
     "Add Favorite\0"
     "Delete Favorite\0"
@@ -904,6 +906,7 @@ SeqStrings gCommandDescriptions =
     "Export pages as images...\0"
     "Capture Page Region\0"
     "Locate Current Chapter\0"
+    "AI Settings...\0"
     "Do nothing\0"
     "\0";
 // clang-format on

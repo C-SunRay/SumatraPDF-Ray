@@ -13,7 +13,7 @@ async function main() {
   copyOcrSidecar(join("out", "rel64"));
   const elapsed = ((performance.now() - timeStart) / 1000).toFixed(1);
   console.log(`build took ${elapsed}s`);
-  console.log(join("out", "rel64", "SumatraPDF-Plus.exe"));
+  console.log(join("out", "rel64", "SumatraPDF-Ray.exe"));
 }
 
 await main();

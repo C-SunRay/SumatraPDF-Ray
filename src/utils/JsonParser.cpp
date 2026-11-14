@@ -221,9 +221,11 @@ static const char* ParseValue(ParseArgs& args, const char* data) {
         case '-':
             return ParseNumber(args, data);
         case '{':
-            return ParseObject(args, data);
-        case '[':
-            return ParseArray(args, data);
+        case '[': {
+            const char* end = *data == '{' ? ParseObject(args, data) : ParseArray(args, data);
+            if (end && !args.canceled) args.canceled = !args.visitor->VisitContainer(args.path.Get(), data, end - data);
+            return end;
+        }
         case 't':
             return ParseKeyword(args, data, "true", Type::Bool);
         case 'f':

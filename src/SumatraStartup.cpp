@@ -918,7 +918,7 @@ static bool LoadLibmupdf() {
     ReportIfFast(true);
 
     TempStr msg = str::FormatTemp(
-        "SumatraPDF.exe failed to load libmupdf.dll.\nError code: %d\nError message: %s\n"
+        "SumatraPDF-Ray.exe failed to load libmupdf.dll.\nError code: %d\nError message: %s\n"
         "We can't proceed.\n"
         "For more information see <a href=\"%s\">SumatraPDF docs</a>.",
         (int)err, errStr ? errStr : "unknown", kFailedToLoadURL);
@@ -1115,7 +1115,7 @@ static void ShowNoAdminErrorMessage() {
     dialogConfig.cxWidth = 340;
     dialogConfig.pszWindowTitle = ToWStrTemp(kAppName);
     dialogConfig.pszMainInstruction =
-        L"Sumatra PDF Plus is running as admin and cannot open files from a non-admin process";
+        L"SumatraPDF-Ray is running as admin and cannot open files from a non-admin process";
     ;
     dialogConfig.pszContent =
         LR"(<a href="https://github.com/sumatrapdfreader/sumatrapdf/discussions/2316">Read more about this error</a>)";

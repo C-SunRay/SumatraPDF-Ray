@@ -27,6 +27,7 @@ HFONT GetMenuFont();
 HMENU BuildMenuFromDef(MenuDef* menuDefs, HMENU menu, BuildMenuCtx* ctx);
 void RemoveBadMenuSeparators(HMENU menu);
 HMENU BuildMenu(MainWindow* win);
+void AppendThemesToMenu(HMENU menu);
 HMENU BuildMenubarPopupMenu(MainWindow* win);
 void OnWindowContextMenu(MainWindow* win, int x, int y);
 void OnAboutContextMenu(MainWindow* win, int x, int y);

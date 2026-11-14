@@ -586,7 +586,7 @@ static bool HttpJsonRaw(const char* url, const char* apiKey, const char* method,
     bool isHttps = uc.nScheme == INTERNET_SCHEME_HTTPS;
     INTERNET_PORT port = uc.nPort ? uc.nPort : (isHttps ? INTERNET_DEFAULT_HTTPS_PORT : INTERNET_DEFAULT_HTTP_PORT);
 
-    hInet = InternetOpenA("SumatraPDF-Plus/AiTocApi", INTERNET_OPEN_TYPE_PRECONFIG, nullptr, nullptr, 0);
+    hInet = InternetOpenA("SumatraPDF-Ray/AiTocApi", INTERNET_OPEN_TYPE_PRECONFIG, nullptr, nullptr, 0);
     if (!hInet) {
         *errOut = str::Dup("Cannot initialize WinINet.");
         return false;
@@ -709,6 +709,49 @@ static TempStr ChatCompletionsUrlTemp(const char* baseUrl) {
     return url;
 }
 
+void AiTocApiApplyDeepSeekPrefs(AiTocApiConfig& cfg, const GlobalPrefs* prefs) {
+    cfg.deepSeekThinking = prefs && prefs->deepSeekThinking;
+    cfg.deepSeekWebSearch = prefs && prefs->deepSeekWebSearch;
+    const char* effort = prefs ? prefs->deepSeekReasoningEffort : nullptr;
+    cfg.deepSeekEffort = str::EqI(effort, "low") ? 0 : str::EqI(effort, "max") ? 2 : 1;
+}
+
+static bool IsDeepSeek(const AiTocApiConfig& cfg) {
+    // Model aliases on the official endpoint work too. Compatible gateways may
+    // opt into the same protocol by using a DeepSeek model id.
+    if (cfg.model && str::StartsWithI(cfg.model, "deepseek-")) return true;
+    const char* url = cfg.baseUrl;
+    if (!url) return false;
+    const char* host = str::Find(url, "://");
+    if (!host) return false;
+    host += 3;
+    const char* domain = "api.deepseek.com";
+    size_t n = str::Len(domain);
+    return str::EqNI(host, domain, n) && (!host[n] || host[n] == '/' || host[n] == ':');
+}
+
+static void AppendModelOptions(StrBuilder& out, const AiTocApiConfig& cfg, bool disableThinking,
+                               const char* temperature) {
+    if (IsDeepSeek(cfg)) {
+        out.AppendFmt(", \"thinking\": {\"type\": \"%s\"}", cfg.deepSeekThinking ? "enabled" : "disabled");
+        if (cfg.deepSeekThinking) {
+            const char* efforts[] = {"low", "high", "max"};
+            out.AppendFmt(", \"reasoning_effort\": \"%s\"", efforts[limitValue(cfg.deepSeekEffort, 0, 2)]);
+        } else
+            out.AppendFmt(", \"temperature\": %s", temperature);
+        if (cfg.deepSeekWebSearch) out.Append(", \"tools\": [{\"type\": \"deepseek_web_search\"}]");
+    } else {
+        out.AppendFmt(", \"temperature\": %s", temperature);
+        if (disableThinking) out.Append(", \"enable_thinking\": false");
+    }
+}
+
+void AiTocChatMetadata::Free() {
+    str::FreePtr(&reasoningContent);
+    str::FreePtr(&serverToolCalls);
+    str::FreePtr(&citations);
+}
+
 static void BuildChatBody(const AiTocApiConfig& cfg, const ChatPart* parts, int nParts, bool disableThinking,
                           StrBuilder& out) {
     out.Append("{\"model\": ");
@@ -729,28 +772,49 @@ static void BuildChatBody(const AiTocApiConfig& cfg, const ChatPart* parts, int 
             out.AppendChar('}');
         }
     }
-    out.Append("]}], \"temperature\": 0");
-    if (disableThinking) {
-        // Match autoContents: request no reasoning phase on every provider.
-        out.Append(", \"enable_thinking\": false");
-    }
+    out.Append("]}]");
+    AppendModelOptions(out, cfg, disableThinking, "0");
     out.AppendChar('}');
 }
 
 struct ChatResponseVisitor : json::ValueVisitor {
-    StrBuilder content;
-    StrBuilder errMsg;
-
+    StrBuilder content, errMsg, reasoning, serverTools, citations;
+    bool reasoningStepDone = false;
     bool Visit(const char* path, const char* value, json::Type type) override {
-        if (type != json::Type::String) {
-            return true;
-        }
-        if (str::Eq(path, "/choices[0]/message/content")) {
+        if (type != json::Type::String) return true;
+        if (str::Eq(path, "/choices[0]/message/content") || str::Eq(path, "/choices[0]/delta/content"))
             content.Append(value);
-        } else if (str::Eq(path, "/error/message")) {
+        else if (str::Eq(path, "/error/message"))
             errMsg.Append(value);
+        else if (str::Eq(path, "/choices[0]/message/reasoning_content") ||
+                 str::Eq(path, "/choices[0]/delta/reasoning_content"))
+            reasoning.Append(value);
+        else if (str::Eq(path, "/choices[0]/server_tool_event/type") && str::Eq(value, "step_reasoning_done"))
+            reasoningStepDone = true;
+        else if ((str::StartsWith(path, "/choices[0]/message/annotations[") ||
+                  str::StartsWith(path, "/choices[0]/delta/annotations[")) &&
+                 str::EndsWith(path, "/url_citation/url") &&
+                 (str::StartsWithI(value, "https://") || str::StartsWithI(value, "http://"))) {
+            // Keep the answer sent back to the API unchanged; show sources separately.
+            citations.Append(value);
+            citations.AppendChar('\n');
         }
         return true;
+    }
+    bool VisitContainer(const char* path, const char* raw, size_t len) override {
+        if (str::Eq(path, "/choices[0]/message/server_tool_calls") ||
+            str::Eq(path, "/choices[0]/delta/server_tool_calls")) {
+            serverTools.Reset();
+            serverTools.Append(raw, len);
+        }
+        return true;
+    }
+    void Export(AiTocChatMetadata* metadata) {
+        if (!metadata) return;
+        metadata->Free();
+        metadata->reasoningContent = str::Dup(reasoning.Get() ? reasoning.Get() : "");
+        if (serverTools.size()) metadata->serverToolCalls = str::Dup(serverTools.Get());
+        if (citations.size()) metadata->citations = str::Dup(citations.Get());
     }
 };
 
@@ -829,7 +893,7 @@ static bool VisionCallOnce(const AiTocApiConfig& cfg, const ChatPart* parts, int
         return false;
     }
     TempStr url = ChatCompletionsUrlTemp(cfg.baseUrl);
-    bool disableThinking = !IsThinkingUnsupported(cfg);
+    bool disableThinking = !IsDeepSeek(cfg) && !IsThinkingUnsupported(cfg);
     HttpPostResult res;
     for (;;) {
         StrBuilder body;
@@ -2555,9 +2619,10 @@ bool AiTocApiDetectTocPages(EngineBase* engine, const AiTocApiConfig& cfg, AiToc
 // ---------------------------------------------------------------------------
 // settings-related helpers
 
-bool AiTocApiTestConnection(const char* baseUrl, const char* key, const char* model, char** msgOut, bool vision) {
+bool AiTocApiTestConnection(const char* baseUrl, const char* key, const char* model, char** msgOut, bool vision,
+                            const AiTocApiConfig* options) {
     *msgOut = nullptr;
-    AiTocApiConfig cfg;
+    AiTocApiConfig cfg = options ? *options : AiTocApiConfig{};
     cfg.baseUrl = baseUrl;
     cfg.key = key;
     cfg.model = model;
@@ -2660,27 +2725,30 @@ static void BuildTextChatBody(const AiTocApiConfig& cfg, const AiTocChatMessage*
         AppendJsonEscaped(out, msgs[i].role ? msgs[i].role : "user");
         out.Append(", \"content\": ");
         AppendJsonEscaped(out, msgs[i].content ? msgs[i].content : "");
+        if (IsDeepSeek(cfg) && str::Eq(msgs[i].role, "assistant")) {
+            if (msgs[i].reasoningContent) {
+                out.Append(", \"reasoning_content\": ");
+                AppendJsonEscaped(out, msgs[i].reasoningContent);
+            }
+            if (msgs[i].serverToolCalls) {
+                out.Append(", \"server_tool_calls\": ");
+                out.Append(msgs[i].serverToolCalls);
+            }
+        }
         out.AppendChar('}');
     }
-    out.Append("], \"temperature\": 0.3");
+    out.Append("]");
+    AppendModelOptions(out, cfg, disableThinking, "0.3");
     if (streaming) {
         out.Append(", \"stream\": true");
-    }
-    if (disableThinking) {
-        out.Append(", \"enable_thinking\": false");
     }
     out.AppendChar('}');
 }
 
-struct ChatStreamReader : json::ValueVisitor {
+struct ChatStreamReader : ChatResponseVisitor {
     size_t consumed = 0;
-    StrBuilder content;
     AiTocChatProgressFn progress = nullptr;
     void* ctx = nullptr;
-    bool Visit(const char* path, const char* value, json::Type type) override {
-        if (type == json::Type::String && str::Eq(path, "/choices[0]/delta/content")) content.Append(value);
-        return true;
-    }
     static void Read(void* ctx, const char* body) {
         auto* self = (ChatStreamReader*)ctx;
         const char* line = body + self->consumed;
@@ -2691,18 +2759,25 @@ struct ChatStreamReader : json::ValueVisitor {
                 const char* data = text.Get() + 5;
                 while (*data == ' ') data++;
                 if (!str::StartsWith(data, "[DONE]")) json::Parse(data, self);
+                if (self->reasoningStepDone) {
+                    self->reasoning.Reset();
+                    self->reasoningStepDone = false;
+                }
             }
             self->consumed = end + 1 - body;
             line = end + 1;
         }
-        if (self->content.size() != before) self->progress(self->ctx, self->content.Get());
+        if (self->progress && self->content.size() != before) self->progress(self->ctx, self->content.Get());
     }
 };
 
 bool AiTocApiChat(const AiTocApiConfig& cfg, const AiTocChatMessage* msgs, int nMsgs, int timeoutMs, char** contentOut,
-                  char** errOut, AiTocChatProgressFn progress, void* progressCtx, AiChatCancel* cancel) {
+                  char** errOut, AiTocChatProgressFn progress, void* progressCtx, AiChatCancel* cancel,
+                  AiTocChatMetadata* metadata) {
     *contentOut = nullptr;
     *errOut = nullptr;
+    if (metadata) metadata->Free();
+    if (IsDeepSeek(cfg) && (cfg.deepSeekThinking || cfg.deepSeekWebSearch)) timeoutMs = std::max(timeoutMs, 300000);
     if (!AiTocApiIsConfigured(cfg)) {
         *errOut = str::Dup("The AI API is not configured (set base URL, key and model in Settings).");
         return false;
@@ -2712,7 +2787,7 @@ bool AiTocApiChat(const AiTocApiConfig& cfg, const AiTocChatMessage* msgs, int n
         return false;
     }
     TempStr url = ChatCompletionsUrlTemp(cfg.baseUrl);
-    bool disableThinking = !IsThinkingUnsupported(cfg);
+    bool disableThinking = !IsDeepSeek(cfg) && !IsThinkingUnsupported(cfg);
     ChatStreamReader stream;
     stream.progress = progress;
     stream.ctx = progressCtx;
@@ -2747,15 +2822,21 @@ bool AiTocApiChat(const AiTocApiConfig& cfg, const AiTocChatMessage* msgs, int n
         }
         return false;
     }
+    if (stream.errMsg.size()) {
+        *errOut = str::Dup(stream.errMsg.Get());
+        return false;
+    }
     if (stream.content.size() > 0) {
+        stream.Export(metadata);
         *contentOut = str::Dup(stream.content.Get());
         return true;
     }
     ChatResponseVisitor vis;
-    if (!res.body.Get() || !json::Parse(res.body.Get(), &vis) || vis.content.size() == 0) {
-        *errOut = str::Dup("The API response had no content.");
+    if (!res.body.Get() || !json::Parse(res.body.Get(), &vis) || vis.errMsg.size() || vis.content.size() == 0) {
+        *errOut = str::Dup(vis.errMsg.size() ? vis.errMsg.Get() : "The API response had no content.");
         return false;
     }
+    vis.Export(metadata);
     *contentOut = str::Dup(vis.content.Get());
     return true;
 }
@@ -3333,4 +3414,193 @@ int AiApiLoadProfiles(GlobalPrefs* prefs, Vec<AiApiProfile>& profiles) {
         profiles.Append(p);
     }
     return limitValue(active, 0, profiles.Size() - 1);
+}
+
+// Upgrade only the untouched, keyless Default profile from older releases.
+// A provider with credentials, a custom name, or multiple profiles is user data.
+void AiApiNormalizeDefaultPrefs(GlobalPrefs* prefs) {
+    if (!prefs) return;
+    prefs->aiTocApiConcurrency = limitValue(prefs->aiTocApiConcurrency, 1, 8);
+    if (!str::IsEmptyOrWhiteSpace(prefs->aiTocApiKey)) return;
+    Vec<AiApiProfile> profiles;
+    defer {
+        for (auto& p : profiles) p.Free();
+    };
+    if (!str::IsEmptyOrWhiteSpace(prefs->aiTocApiProfiles)) {
+        AiApiProfilesVisitor visitor(&profiles);
+        if (!json::Parse(prefs->aiTocApiProfiles, &visitor)) return;
+        if (profiles.Size() != 1 || !str::Eq(profiles[0].name, "Default")) return;
+    } else {
+        AiApiLoadProfiles(prefs, profiles);
+    }
+    auto& p = profiles[0];
+    if (!str::IsEmptyOrWhiteSpace(p.key)) return;
+    bool empty = str::IsEmptyOrWhiteSpace(p.baseUrl) && str::IsEmptyOrWhiteSpace(p.model);
+    bool oldDefault = (str::Eq(p.baseUrl, "https://dashscope.aliyuncs.com/compatible-mode/v1") ||
+                       str::Eq(p.baseUrl, "https://dashscope.aliyuncs.com/compatible-mode/v1/")) &&
+                      str::Eq(p.model, "qwen3.5-397b-a17b");
+    if (!empty && !oldDefault) return;
+    str::ReplaceWithCopy(&prefs->aiTocApiBaseUrl, "https://api.deepseek.com");
+    str::ReplaceWithCopy(&prefs->aiTocApiModel, "deepseek-flash");
+    prefs->aiTocApiConcurrency = limitValue(p.concurrency, 1, 8);
+    // Recreate this single default profile from the migrated flat fields.
+    str::ReplaceWithCopy(&prefs->aiTocApiProfiles, "");
+}
+
+// Regression tests for the DeepSeek wire protocol. Invoked only by the
+// SUMATRA_TEST_DEEPSEEK / -render developer test hook; no real API key is used.
+bool TestDeepSeekApi(const char* reportPath) {
+    FILE* report = fopen(reportPath, "w");
+    if (!report) return false;
+    defer {
+        fclose(report);
+    };
+    int failed = 0, checks = 0;
+    auto check = [&](bool ok, const char* name) {
+        fprintf(report, "%s %s\n", ok ? "PASS" : "FAIL", name);
+        checks++;
+        if (!ok) failed++;
+    };
+    struct Probe : json::ValueVisitor {
+        const char* wanted;
+        StrBuilder value;
+        explicit Probe(const char* path) : wanted(path) {}
+        bool Visit(const char* path, const char* text, json::Type) override {
+            if (str::Eq(path, wanted)) value.Append(text);
+            return true;
+        }
+    };
+    auto field = [](const char* body, const char* path, const char* expected) {
+        Probe probe(path);
+        if (!json::Parse(body, &probe)) return false;
+        return str::Eq(probe.value.Get() ? probe.value.Get() : "", expected);
+    };
+    AiTocApiConfig cfg{"https://api.deepseek.com/v1", "test-key", "deepseek-flash", 1};
+    AiTocChatMessage message{"user", "Hello \"quoted\"\n世界"};
+    ChatPart part{};
+    part.text = message.content;
+    StrBuilder body;
+    BuildTextChatBody(cfg, &message, 1, true, body, true);
+    check(field(body.Get(), "/thinking/type", "disabled"), "default explicitly disables thinking");
+    check(field(body.Get(), "/tools[0]/type", ""), "default has no search tool");
+    check(field(body.Get(), "/enable_thinking", ""), "DeepSeek omits unsupported enable_thinking");
+    check(field(body.Get(), "/messages[0]/content", message.content), "JSON quoting and Unicode preserved");
+    const char* efforts[] = {"low", "high", "max"};
+    for (int thinking = 0; thinking < 2; thinking++) {
+        for (int search = 0; search < 2; search++) {
+            for (int effort = 0; effort < 3; effort++) {
+                cfg.deepSeekThinking = thinking != 0;
+                cfg.deepSeekWebSearch = search != 0;
+                cfg.deepSeekEffort = effort;
+                for (int vision = 0; vision < 2; vision++) {
+                    body.Reset();
+                    if (vision)
+                        BuildChatBody(cfg, &part, 1, true, body);
+                    else
+                        BuildTextChatBody(cfg, &message, 1, true, body, false);
+                    bool ok = field(body.Get(), "/thinking/type", thinking ? "enabled" : "disabled") &&
+                              field(body.Get(), "/reasoning_effort", thinking ? efforts[effort] : "") &&
+                              field(body.Get(), "/tools[0]/type", search ? "deepseek_web_search" : "") &&
+                              field(body.Get(), "/enable_thinking", "");
+                    if (thinking) ok = ok && field(body.Get(), "/temperature", "");
+                    check(ok,
+                          str::FormatTemp("%s thinking=%d search=%d effort=%s", vision ? "TOC/test" : "chat/translate",
+                                          thinking, search, efforts[effort]));
+                }
+            }
+        }
+    }
+    const char* calls =
+        R"json([ {"index":0,"reasoning_content":"first", "calls":[{"signature":"a\\b\"c","kind":"search","type":"deepseek_web_search"}]} ])json";
+    StrBuilder reply;
+    reply.AppendFmt(
+        R"json({"choices":[{"message":{"content":"Answer","reasoning_content":"last","server_tool_calls":%s,"annotations":[{"type":"url_citation","url_citation":{"url":"https://example.com/source"}}]}}]})json",
+        calls);
+    ChatResponseVisitor response;
+    check(json::Parse(reply.Get(), &response), "parse complete web search response");
+    AiTocChatMetadata metadata;
+    response.Export(&metadata);
+    check(str::Eq(metadata.serverToolCalls, calls), "preserve complete tool JSON including signature verbatim");
+    check(str::Eq(metadata.reasoningContent, "last"), "retain final-step reasoning");
+    check(str::Eq(metadata.citations, "https://example.com/source\n"), "extract citation source URLs");
+    AiTocChatMessage history[] = {{"assistant", "Answer", metadata.reasoningContent, metadata.serverToolCalls},
+                                  message};
+    body.Reset();
+    BuildTextChatBody(cfg, history, 2, false, body, true);
+    check(field(body.Get(), "/messages[0]/reasoning_content", "last") &&
+              field(body.Get(), "/messages[0]/server_tool_calls[0]/calls[0]/kind", "search"),
+          "carry metadata into next turn");
+    cfg.deepSeekWebSearch = false;
+    body.Reset();
+    BuildTextChatBody(cfg, history, 2, false, body, true);
+    check(field(body.Get(), "/tools[0]/type", "") &&
+              field(body.Get(), "/messages[0]/server_tool_calls[0]/calls[0]/kind", "search"),
+          "disabling search retains existing history");
+    metadata.Free();
+    ChatStreamReader stream;
+    StrBuilder sse;
+    sse.Append("data: {\"choices\":[{\"delta\":{\"reasoning_content\":\"first\"}}]}\n\n");
+    sse.Append(
+        "data: {\"choices\":[{\"delta\":{},\"server_tool_event\":{\"type\":\"step_reasoning_done\",\"step\":0}}]}\n\n");
+    sse.Append("data: {\"choices\":[{\"delta\":{\"reasoning_content\":\"last\",\"content\":\"Answer\"}}]}\n\n");
+    sse.AppendFmt(
+        "data: "
+        "{\"choices\":[{\"delta\":{\"server_tool_calls\":%s,\"annotations\":[{\"url_citation\":{\"url\":\"https://"
+        "example.com/source\"}}]},\"finish_reason\":\"stop\"}]}\n\ndata: [DONE]\n\n",
+        calls);
+    StrBuilder received;
+    // Exercise fragments that split JSON tokens, escapes and event boundaries.
+    for (size_t i = 0; i < sse.size(); i += 7) {
+        received.Append(sse.Get() + i, std::min((size_t)7, sse.size() - i));
+        ChatStreamReader::Read(&stream, received.Get());
+    }
+    stream.Export(&metadata);
+    check(str::Eq(stream.content.Get(), "Answer") && str::Eq(metadata.reasoningContent, "last") &&
+              str::Eq(metadata.serverToolCalls, calls) && str::Eq(metadata.citations, "https://example.com/source\n"),
+          "fragmented SSE preserves text, final reasoning, tools and citations");
+    metadata.Free();
+    received.Append("data: {\"error\":{\"message\":\"Generation failed\"},\"choices\":[]}\n\n");
+    ChatStreamReader::Read(&stream, received.Get());
+    check(str::Eq(stream.errMsg.Get(), "Generation failed"), "HTTP-200 streaming error is detected");
+    cfg.baseUrl = "https://api.other.example/v1";
+    cfg.model = "qwen-vl";
+    body.Reset();
+    BuildTextChatBody(cfg, history, 2, true, body, false);
+    check(field(body.Get(), "/enable_thinking", "false") && field(body.Get(), "/thinking/type", "") &&
+              field(body.Get(), "/tools[0]/type", "") && field(body.Get(), "/messages[0]/reasoning_content", ""),
+          "other providers keep their existing protocol and omit DeepSeek history");
+    cfg.baseUrl = "https://api.deepseek.com.evil.example";
+    check(!IsDeepSeek(cfg), "official endpoint detection uses hostname boundary");
+    cfg.baseUrl = "https://api.deepseek.com/v1";
+    check(IsDeepSeek(cfg), "official endpoint supports model aliases");
+    GlobalPrefs prefs{};
+    AiTocApiApplyDeepSeekPrefs(cfg, &prefs);
+    check(!cfg.deepSeekThinking && !cfg.deepSeekWebSearch && cfg.deepSeekEffort == 1,
+          "missing preferences default off/off/high");
+    if (const char* mockUrl = getenv("SUMATRA_TEST_DEEPSEEK_URL")) {
+        cfg = {mockUrl, "local-test-only", "deepseek-flash", 1};
+        cfg.deepSeekThinking = true;
+        cfg.deepSeekWebSearch = true;
+        cfg.deepSeekEffort = 2;
+        char *content = nullptr, *error = nullptr;
+        bool ok = AiTocApiChat(
+            cfg, &message, 1, 5000, &content, &error, [](void*, const char*) {}, nullptr, nullptr, &metadata);
+        check(ok && str::Eq(content, "Mock answer") && metadata.serverToolCalls && metadata.citations,
+              "HTTP SSE integration returns search result and metadata");
+        AiTocChatMessage next[] = {{"assistant", content, metadata.reasoningContent, metadata.serverToolCalls},
+                                   message};
+        char *second = nullptr, *secondError = nullptr;
+        cfg.deepSeekThinking = false;
+        cfg.deepSeekWebSearch = false;
+        ok = AiTocApiChat(cfg, next, 2, 5000, &second, &secondError);
+        check(ok && str::Eq(second, "Mock followup"),
+              "HTTP next turn switches off thinking/search and carries history");
+        str::Free(content);
+        str::Free(error);
+        str::Free(second);
+        str::Free(secondError);
+        metadata.Free();
+    }
+    fprintf(report, "%d checks, %d failures\n", checks, failed);
+    return failed == 0;
 }

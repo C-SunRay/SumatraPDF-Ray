@@ -590,7 +590,7 @@ RenderedBitmap* EngineEbook::RenderPage(RenderPageArgs& args) {
     } else if (readerStyleMobi) {
         if (docMode == PdfDocumentColorMode::Black ||
             (docMode == PdfDocumentColorMode::Auto && !ThemeUsesOriginalPageColors())) {
-            bgCol = RgbToCOLORREF(0xF7F3E8);
+            bgCol = ThemeEyeCarePageBackgroundColor();
             textCol = RgbToCOLORREF(0x333333);
         } else {
             bgCol = RgbToCOLORREF(0xFFFFFF);
